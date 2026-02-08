@@ -14,6 +14,7 @@ from typing import Optional
 import asyncpraw  # type: ignore[import-untyped]
 import asyncpraw.models  # type: ignore[import-untyped]
 
+from app.core.config import settings
 from collectors.base import BaseCollector, CollectedItem
 from collectors.locations import find_locations
 
@@ -50,12 +51,9 @@ class RedditCollector(BaseCollector):
         self.subreddits = subreddits or _DEFAULT_SUBREDDITS
 
         # Validate Reddit credentials early.
-        self._client_id = os.environ.get("REDDIT_CLIENT_ID", "")
-        self._client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
-        self._user_agent = os.environ.get(
-            "REDDIT_USER_AGENT",
-            "ThermocultureResearchBot/1.0 (academic research project)",
-        )
+        self._client_id = settings.REDDIT_CLIENT_ID
+        self._client_secret = settings.REDDIT_CLIENT_SECRET
+        self._user_agent = settings.REDDIT_USER_AGENT
 
         if not self._client_id or not self._client_secret:
             self.logger.warning(

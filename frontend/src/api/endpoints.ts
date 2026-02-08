@@ -109,7 +109,7 @@ export async function fetchSamples(
 ): Promise<PaginatedResponse<DiscourseSampleResponse>> {
   const { data } = await apiClient.get<
     PaginatedResponse<DiscourseSampleResponse>
-  >('/samples', { params: buildFilterQuery(filters) });
+  >('/samples/', { params: buildFilterQuery(filters) });
   return data;
 }
 
@@ -117,7 +117,7 @@ export async function fetchSampleDetail(
   id: string,
 ): Promise<DiscourseSampleDetailResponse> {
   const { data } = await apiClient.get<DiscourseSampleDetailResponse>(
-    `/samples/${id}`,
+    `/samples/${id}/`,
   );
   return data;
 }
@@ -126,7 +126,7 @@ export async function createSample(
   payload: DiscourseSampleCreate,
 ): Promise<DiscourseSampleResponse> {
   const { data } = await apiClient.post<DiscourseSampleResponse>(
-    '/samples',
+    '/samples/',
     payload,
   );
   return data;
@@ -140,7 +140,7 @@ export async function fetchSampleAnalysis(
   sampleId: string,
 ): Promise<SampleAnalysisResponse> {
   const { data } = await apiClient.get<SampleAnalysisResponse>(
-    `/samples/${sampleId}/analysis`,
+    `/samples/${sampleId}/analysis/`,
   );
   return data;
 }
@@ -150,19 +150,19 @@ export async function fetchSampleAnalysis(
 // ---------------------------------------------------------------------------
 
 export async function fetchSources(): Promise<SourceResponse[]> {
-  const { data } = await apiClient.get<SourceResponse[]>('/sources');
+  const { data } = await apiClient.get<SourceResponse[]>('/sources/');
   return data;
 }
 
 export async function fetchSource(id: string): Promise<SourceResponse> {
-  const { data } = await apiClient.get<SourceResponse>(`/sources/${id}`);
+  const { data } = await apiClient.get<SourceResponse>(`/sources/${id}/`);
   return data;
 }
 
 export async function createSource(
   payload: SourceCreate,
 ): Promise<SourceResponse> {
-  const { data } = await apiClient.post<SourceResponse>('/sources', payload);
+  const { data } = await apiClient.post<SourceResponse>('/sources/', payload);
   return data;
 }
 
@@ -186,14 +186,14 @@ export async function deleteSource(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function fetchThemes(): Promise<ThemeResponse[]> {
-  const { data } = await apiClient.get<ThemeResponse[]>('/themes');
+  const { data } = await apiClient.get<ThemeResponse[]>('/themes/');
   return data;
 }
 
 export async function createTheme(
   payload: ThemeCreate,
 ): Promise<ThemeResponse> {
-  const { data } = await apiClient.post<ThemeResponse>('/themes', payload);
+  const { data } = await apiClient.post<ThemeResponse>('/themes/', payload);
   return data;
 }
 
@@ -203,7 +203,7 @@ export async function fetchThemeSamples(
 ): Promise<PaginatedResponse<DiscourseSampleResponse>> {
   const { data } = await apiClient.get<
     PaginatedResponse<DiscourseSampleResponse>
-  >(`/themes/${themeId}/samples`, { params: buildFilterQuery(filters) });
+  >(`/themes/${themeId}/samples/`, { params: buildFilterQuery(filters) });
   return data;
 }
 
@@ -212,7 +212,7 @@ export async function fetchThemeSamples(
 // ---------------------------------------------------------------------------
 
 export async function fetchLocations(): Promise<LocationResponse[]> {
-  const { data } = await apiClient.get<LocationResponse[]>('/locations');
+  const { data } = await apiClient.get<LocationResponse[]>('/locations/');
   return data;
 }
 
@@ -220,7 +220,7 @@ export async function createLocation(
   payload: LocationCreate,
 ): Promise<LocationResponse> {
   const { data } = await apiClient.post<LocationResponse>(
-    '/locations',
+    '/locations/',
     payload,
   );
   return data;
@@ -261,7 +261,7 @@ export async function fetchJobStatus(
   id: string,
 ): Promise<CollectionJobResponse> {
   const { data } = await apiClient.get<CollectionJobResponse>(
-    `/jobs/${id}/status`,
+    `/jobs/${id}/status/`,
   );
   return data;
 }
@@ -278,7 +278,7 @@ export async function fetchCollectionStats(): Promise<CollectionStats> {
 // ---------------------------------------------------------------------------
 
 export async function fetchNotes(): Promise<ResearchNoteResponse[]> {
-  const { data } = await apiClient.get<ResearchNoteResponse[]>('/notes');
+  const { data } = await apiClient.get<ResearchNoteResponse[]>('/notes/');
   return data;
 }
 
@@ -295,7 +295,7 @@ export async function createNote(
   payload: ResearchNoteCreate,
 ): Promise<ResearchNoteResponse> {
   const { data } = await apiClient.post<ResearchNoteResponse>(
-    '/notes',
+    '/notes/',
     payload,
   );
   return data;
@@ -320,14 +320,14 @@ export async function linkSampleToNote(
   noteId: string,
   sampleId: string,
 ): Promise<void> {
-  await apiClient.post(`/notes/${noteId}/samples/${sampleId}`);
+  await apiClient.post(`/notes/${noteId}/link-sample/${sampleId}`);
 }
 
 export async function unlinkSampleFromNote(
   noteId: string,
   sampleId: string,
 ): Promise<void> {
-  await apiClient.delete(`/notes/${noteId}/samples/${sampleId}`);
+  await apiClient.post(`/notes/${noteId}/unlink-sample/${sampleId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -348,7 +348,7 @@ export async function fetchCitationsForSample(
   sampleId: string,
 ): Promise<CitationResponse[]> {
   const { data } = await apiClient.get<CitationResponse[]>(
-    `/citations/sample/${sampleId}`,
+    `/citations/sample/${sampleId}/`,
   );
   return data;
 }
@@ -451,7 +451,7 @@ export async function fetchThemeCoOccurrence(
 // ---------------------------------------------------------------------------
 
 export async function fetchSavedQuotes(): Promise<SavedQuote[]> {
-  const { data } = await apiClient.get<SavedQuote[]>('/quotes');
+  const { data } = await apiClient.get<SavedQuote[]>('/quotes/');
   return data;
 }
 
@@ -459,7 +459,7 @@ export async function saveQuote(
   sampleId: string,
   text: string,
 ): Promise<SavedQuote> {
-  const { data } = await apiClient.post<SavedQuote>('/quotes', {
+  const { data } = await apiClient.post<SavedQuote>('/quotes/', {
     sample_id: sampleId,
     text,
   });

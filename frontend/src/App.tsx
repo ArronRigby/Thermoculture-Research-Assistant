@@ -10,6 +10,7 @@ import CollectionDashboard from './pages/CollectionDashboard'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   return (
@@ -39,8 +40,16 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route element={<Layout />}>
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/" element={<Dashboard />} />
+          <Route path="/browse" element={<DiscourseBrowser />} />
+          <Route path="/browse/:id" element={<SampleDetail />} />
           <Route path="/samples" element={<DiscourseBrowser />} />
           <Route path="/samples/:id" element={<SampleDetail />} />
           <Route path="/analysis" element={<AnalysisInsights />} />

@@ -1,16 +1,20 @@
+import asyncio
 import csv
 import io
 import math
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import and_, delete, distinct, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.database import get_db
+from app.core.database import async_session_factory, get_db
+from collectors.scheduler import CollectionScheduler
+
+from loguru import logger
 from app.core.security import (
     create_access_token,
     get_current_user,
@@ -159,7 +163,10 @@ async def get_me(current_user=Depends(get_current_user)):
 
 
 @dashboard_router.get("/stats", response_model=DashboardStatsResponse)
-async def dashboard_stats(db: AsyncSession = Depends(get_db)):
+async def dashboard_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     total_samples = (await db.execute(func.count(DiscourseSample.id))).scalar() or 0
     active_sources = (
         await db.execute(
@@ -192,6 +199,7 @@ async def list_sources(
     source_type: Optional[SourceType] = None,
     is_active: Optional[bool] = None,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     stmt = select(Source)
     if source_type is not None:
@@ -260,7 +268,11 @@ def _build_sample_filters(stmt, params: FilterParams):
     if params.date_from is not None:
         stmt = stmt.where(DiscourseSample.collected_at >= params.date_from)
     if params.date_to is not None:
-        stmt = stmt.where(DiscourseSample.collected_at <= params.date_to)
+        # Make the "to" date inclusive of the entire day if it's just a date
+        date_to = params.date_to
+        if date_to.hour == 0 and date_to.minute == 0 and date_to.second == 0:
+            date_to = date_to.replace(hour=23, minute=59, second=59, microsecond=999999)
+        stmt = stmt.where(DiscourseSample.collected_at <= date_to)
     if params.location_ids:
         stmt = stmt.where(DiscourseSample.location_id.in_(params.location_ids))
     if params.source_types:
@@ -317,9 +329,12 @@ async def list_samples(
     source_types: Optional[str] = Query(None, description="Comma-separated SourceType values"),
     discourse_types: Optional[str] = Query(None, description="Comma-separated ClassificationType values"),
     search_query: Optional[str] = None,
+    sort_by: Optional[str] = "collected_at",
+    sort_order: Optional[str] = "desc",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     # Parse comma-separated query params into FilterParams
     parsed_location_ids = (
@@ -355,6 +370,8 @@ async def list_samples(
         source_types=parsed_source_types,
         discourse_types=parsed_discourse_types,
         search_query=search_query,
+        sort_by=sort_by,
+        sort_order=sort_order,
         page=page,
         page_size=page_size,
     )
@@ -368,7 +385,38 @@ async def list_samples(
     # Data query
     stmt = select(DiscourseSample)
     stmt = _build_sample_filters(stmt, params)
-    stmt = stmt.order_by(DiscourseSample.collected_at.desc())
+    # Sorting
+    if params.sort_by == "sentiment":
+        # Sort by sentiment analysis score
+        stmt = stmt.outerjoin(SentimentAnalysis)
+        if params.sort_order == "asc":
+            stmt = stmt.order_by(SentimentAnalysis.overall_sentiment.asc().nulls_last())
+        else:
+            stmt = stmt.order_by(SentimentAnalysis.overall_sentiment.desc().nulls_last())
+    elif params.sort_by == "title":
+        if params.sort_order == "asc":
+            stmt = stmt.order_by(DiscourseSample.title.asc())
+        else:
+            stmt = stmt.order_by(DiscourseSample.title.desc())
+    elif params.sort_by == "relevance":
+        # For now, default to collected_at if no full-text relevance weighting
+        # If search_query is present, we could add text-rank later
+        if params.sort_order == "asc":
+            stmt = stmt.order_by(DiscourseSample.collected_at.asc())
+        else:
+            stmt = stmt.order_by(DiscourseSample.collected_at.desc())
+    else:
+        # Default to collected_at
+        col = getattr(DiscourseSample, params.sort_by or "collected_at", DiscourseSample.collected_at)
+        # Verify it's actually a column to avoid getattr issues
+        if not hasattr(DiscourseSample, str(params.sort_by)):
+            col = DiscourseSample.collected_at
+            
+        if params.sort_order == "asc":
+            stmt = stmt.order_by(col.asc())
+        else:
+            stmt = stmt.order_by(col.desc())
+
     stmt = stmt.offset((params.page - 1) * params.page_size).limit(params.page_size)
     result = await db.execute(stmt)
     items = result.scalars().unique().all()
@@ -469,7 +517,10 @@ async def get_sample_analysis(sample_id: str, db: AsyncSession = Depends(get_db)
 
 
 @themes_router.get("/", response_model=List[ThemeResponse])
-async def list_themes(db: AsyncSession = Depends(get_db)):
+async def list_themes(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(Theme).order_by(Theme.name))
     return result.scalars().all()
 
@@ -536,7 +587,10 @@ async def get_theme_samples(
 
 
 @locations_router.get("/", response_model=List[LocationResponse])
-async def list_locations(db: AsyncSession = Depends(get_db)):
+async def list_locations(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(Location).order_by(Location.name))
     return result.scalars().all()
 
@@ -597,6 +651,7 @@ async def sentiment_over_time(
     date_to: Optional[datetime] = None,
     granularity: str = Query("day", regex="^(day|week|month)$"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     strftime_map = {
         "day": "%Y-%m-%d",
@@ -1169,6 +1224,93 @@ async def get_sample_citations(sample_id: str, db: AsyncSession = Depends(get_db
 # ===========================================================================
 
 
+async def _run_collection_in_background(
+    job_id: str,
+    source_id: str,
+    collector_type: str,
+) -> None:
+    """
+    Background task that runs the actual collection.
+    
+    Creates its own database session since the request session is closed
+    after the response is sent.
+    """
+    logger.info(f"DEBUG: Starting background collection for job {job_id}")
+    await asyncio.sleep(1)  # Ensure DB visibility
+    async with async_session_factory() as db:
+        try:
+            # Get the job and update to RUNNING
+            result = await db.execute(
+                select(CollectionJob).where(CollectionJob.id == job_id)
+            )
+            job = result.scalar_one_or_none()
+            if job is None:
+                logger.error(f"DEBUG: Job {job_id} not found")
+                return
+            
+            logger.info(f"DEBUG: Updating job {job_id} to RUNNING")
+            job.status = JobStatus.RUNNING
+            job.started_at = datetime.now(timezone.utc)
+            await db.commit()
+            
+            # Run the collection using the scheduler
+            scheduler = CollectionScheduler()
+            
+            # Get the source for the collector
+            source = await db.get(Source, source_id)
+            if source is None:
+                logger.error(f"DEBUG: Source {source_id} not found")
+                job.status = JobStatus.FAILED
+                job.error_message = "Source not found"
+                job.completed_at = datetime.now(timezone.utc)
+                await db.commit()
+                return
+            
+            logger.info(f"DEBUG: Resolved source: {source.name} ({collector_type})")
+            
+            # Run the collector
+            from collectors.scheduler import _get_collector
+            collector = _get_collector(collector_type, source=source)
+            logger.info(f"DEBUG: Collector instance: {type(collector).__name__}")
+            
+            logger.info(f"DEBUG: Starting collection...")
+            items = await collector.collect()
+            logger.info(f"DEBUG: Collected {len(items)} items")
+            
+            # Ingest the collected items
+            logger.info(f"DEBUG: Ingesting items...")
+            stats = await scheduler.pipeline.ingest_items(
+                items=items,
+                source_id=source_id,
+                db=db,
+            )
+            logger.info(f"DEBUG: Ingestion stats: {stats}")
+            
+            # Update job as completed
+            job.status = JobStatus.COMPLETED
+            job.completed_at = datetime.now(timezone.utc)
+            job.items_collected = stats.get("new", 0)
+            await db.commit()
+            logger.info(f"DEBUG: Job {job_id} COMPLETED")
+            
+        except Exception as exc:
+            logger.exception(f"DEBUG: EXCEPTION in background task for job {job_id}")
+            
+            # Update job as failed
+            try:
+                result = await db.execute(
+                    select(CollectionJob).where(CollectionJob.id == job_id)
+                )
+                job = result.scalar_one_or_none()
+                if job:
+                    job.status = JobStatus.FAILED
+                    job.completed_at = datetime.now(timezone.utc)
+                    job.error_message = f"{type(exc).__name__}: {exc}"
+                    await db.commit()
+            except Exception as inner_exc:
+                logger.error(f"DEBUG: Failed to update job status on error: {inner_exc}")
+
+
 @jobs_router.get("/", response_model=List[CollectionJobResponse])
 async def list_jobs(db: AsyncSession = Depends(get_db)):
     stmt = select(CollectionJob).order_by(CollectionJob.started_at.desc().nulls_last())
@@ -1179,8 +1321,10 @@ async def list_jobs(db: AsyncSession = Depends(get_db)):
 @jobs_router.post("/start", response_model=CollectionJobResponse, status_code=status.HTTP_201_CREATED)
 async def start_collection_job(
     payload: CollectionJobCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
+    logger.info(f"DEBUG: start_collection_job called for source {payload.source_id}")
     # Verify source
     source_result = await db.execute(select(Source).where(Source.id == payload.source_id))
     source = source_result.scalar_one_or_none()
@@ -1204,14 +1348,30 @@ async def start_collection_job(
             detail="A collection job is already running for this source",
         )
 
+    # Determine the collector type based on source
+    collector_type = CollectionScheduler._resolve_collector_type(source)
+
     job = CollectionJob(
         source_id=payload.source_id,
         status=JobStatus.PENDING,
-        started_at=datetime.now(timezone.utc),
     )
     db.add(job)
     await db.flush()
     await db.refresh(job)
+    
+    # Commit now so the background task can see the record
+    await db.commit()
+    
+    logger.info(f"DEBUG: Adding background task for job {job.id}...")
+    # Schedule the collection to run in the background
+    background_tasks.add_task(
+        _run_collection_in_background,
+        job_id=str(job.id),
+        source_id=str(payload.source_id),
+        collector_type=collector_type,
+    )
+    logger.info(f"DEBUG: Background task added.")
+    
     return job
 
 

@@ -81,10 +81,6 @@ This creates:
 - 60+ discourse samples with sentiment analysis, classifications, and theme tags
 - 2 sample research notes
 
-### Default Login
-- **Email**: researcher@thermoculture.ac.uk
-- **Password**: research2024
-
 ## Project Structure
 
 ```

@@ -1,18 +1,30 @@
-import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, FormEvent, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      const searchParams = new URLSearchParams(location.search);
+      const returnTo = searchParams.get('returnTo') || '/';
+      navigate(returnTo, { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate, location]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     try {
       await login({ username: email, password });
-      navigate('/');
+      const searchParams = new URLSearchParams(location.search);
+      const returnTo = searchParams.get('returnTo');
+      const from = returnTo || (location.state as any)?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch {
       // error is set in useAuth
     }

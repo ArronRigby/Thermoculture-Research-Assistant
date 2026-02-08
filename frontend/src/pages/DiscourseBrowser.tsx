@@ -195,7 +195,7 @@ function FilterBar({ filters, onChange }: FilterBarProps) {
 function SampleCardGrid({ sample }: { sample: DiscourseSampleResponse }) {
   return (
     <Link
-      to={`/samples/${sample.id}`}
+      to={`/browse/${sample.id}`}
       className="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition-shadow"
     >
       <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-2">
@@ -215,7 +215,7 @@ function SampleCardGrid({ sample }: { sample: DiscourseSampleResponse }) {
 function SampleCardList({ sample }: { sample: DiscourseSampleResponse }) {
   return (
     <Link
-      to={`/samples/${sample.id}`}
+      to={`/browse/${sample.id}`}
       className="flex gap-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
     >
       <div className="flex-1 min-w-0">

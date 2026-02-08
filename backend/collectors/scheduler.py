@@ -82,7 +82,6 @@ _COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     "news_guardian": GuardianCollector,
     "reddit": RedditCollector,
     # Aliases that match the SourceType enum values (upper-case).
-    "NEWS": BBCNewsCollector,       # Default news collector; override per source.
     "REDDIT": RedditCollector,
 }
 
@@ -284,8 +283,9 @@ class CollectionScheduler:
                 return "news_guardian"
             if "bbc" in name_lower or "bbc.co.uk" in url_lower:
                 return "news_bbc"
-            # Default to BBC for unrecognised news sources.
-            return "news_bbc"
+            # Return generic NEWS if no match found, let the factory handle unknown types if needed
+            # or raise an error if we want strict matching.
+            return type_str
 
         if type_str == SourceType.REDDIT.value or type_str == "REDDIT":
             return "reddit"

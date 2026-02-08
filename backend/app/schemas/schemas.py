@@ -56,6 +56,8 @@ class FilterParams(BaseModel):
     source_types: Optional[List[SourceType]] = None
     discourse_types: Optional[List[ClassificationType]] = None
     search_query: Optional[str] = None
+    sort_by: Optional[str] = "collected_at"
+    sort_order: Optional[str] = "desc"
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 

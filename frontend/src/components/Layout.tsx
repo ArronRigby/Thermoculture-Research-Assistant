@@ -10,7 +10,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: '\u2302' },              // ⌂
-  { to: '/samples', label: 'Discourse Browser', icon: '\u2637' }, // ☷
+  { to: '/browse', label: 'Discourse Browser', icon: '\u2637' }, // ☷
   { to: '/analysis', label: 'Analysis & Insights', icon: '\u2261' }, // ≡
   { to: '/research', label: 'Research Workspace', icon: '\u270E' }, // ✎
   { to: '/collection', label: 'Collection', icon: '\u21BB' },     // ↻

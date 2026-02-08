@@ -50,7 +50,7 @@ class BBCNewsCollector(BaseCollector):
         self,
         *,
         keywords: list[str] | None = None,
-        max_results_per_keyword: int = 10,
+        max_results_per_keyword: int = 30,
         **kwargs,
     ) -> list[CollectedItem]:
         """
@@ -74,26 +74,45 @@ class BBCNewsCollector(BaseCollector):
         ) as client:
             for term in search_terms:
                 self.logger.info("BBC: searching for %r", term)
+                keyword_items_collected = 0  # Track items for THIS keyword only
                 try:
-                    article_urls = await self._search(client, term, max_results_per_keyword)
+                    page = 1
+                    while keyword_items_collected < max_results_per_keyword:
+                        found_urls = await self._search(client, term, max_results_per_keyword, page=page)
+                        if not found_urls:
+                            break
+
+                        new_urls_on_page = 0
+                        for url in found_urls:
+                            if url in seen_urls:
+                                continue
+                            seen_urls.add(url)
+                            new_urls_on_page += 1
+
+                            await self._rate_limit()
+
+                            try:
+                                item = await self._fetch_article(client, url)
+                                if item is not None:
+                                    collected.append(item)
+                                    self.items_collected += 1
+                                    keyword_items_collected += 1  # Increment per-keyword counter
+                                    if keyword_items_collected >= max_results_per_keyword:
+                                        break  # Stop collecting for this keyword
+                            except Exception:
+                                self.logger.exception("BBC: failed to fetch %s", url)
+
+                        if new_urls_on_page == 0:
+                            # If we didn't find any unique articles on this page, stop digging deeper for this term
+                            break
+
+                        page += 1
+                        if page > 10: # Safety cap: don't go past 10 pages for one keyword
+                            break
+
                 except Exception:
                     self.logger.exception("BBC: search failed for %r", term)
                     continue
-
-                for url in article_urls:
-                    if url in seen_urls:
-                        continue
-                    seen_urls.add(url)
-
-                    await self._rate_limit()
-
-                    try:
-                        item = await self._fetch_article(client, url)
-                        if item is not None:
-                            collected.append(item)
-                            self.items_collected += 1
-                    except Exception:
-                        self.logger.exception("BBC: failed to fetch %s", url)
 
         self.logger.info("BBC: collected %d articles", len(collected))
         return collected
@@ -107,9 +126,10 @@ class BBCNewsCollector(BaseCollector):
         client: httpx.AsyncClient,
         query: str,
         max_results: int,
+        page: int = 1,
     ) -> list[str]:
         """Return a list of article URLs from the BBC search page."""
-        params = {"q": query, "d": "news_gnl"}
+        params = {"q": query, "d": "news_gnl", "page": str(page)}
         response = await client.get(self.SEARCH_URL, params=params)
         response.raise_for_status()
 
@@ -259,7 +279,11 @@ class GuardianCollector(BaseCollector):
     """
 
     BASE_URL = "https://www.theguardian.com"
-    SEARCH_URL = "https://www.theguardian.com/search"
+    RSS_FEEDS = [
+        "https://www.theguardian.com/uk/environment/rss",
+        "https://www.theguardian.com/environment/climate-crisis/rss",
+        "https://www.theguardian.com/environment/energy/rss",
+    ]
 
     def __init__(self, rate_limit_seconds: float = 2.0):
         super().__init__(source_name="guardian", rate_limit_seconds=rate_limit_seconds)
@@ -272,20 +296,12 @@ class GuardianCollector(BaseCollector):
         self,
         *,
         keywords: list[str] | None = None,
-        max_results_per_keyword: int = 10,
+        max_results_per_feed: int = 50,
         **kwargs,
     ) -> list[CollectedItem]:
         """
-        Run the Guardian collection process.
-
-        Parameters
-        ----------
-        keywords:
-            Override the default climate keywords.
-        max_results_per_keyword:
-            Maximum number of articles to fetch per keyword.
+        Run the Guardian collection process using RSS feeds.
         """
-        search_terms = keywords or self.CLIMATE_KEYWORDS
         collected: list[CollectedItem] = []
         seen_urls: set[str] = set()
 
@@ -294,12 +310,12 @@ class GuardianCollector(BaseCollector):
             timeout=httpx.Timeout(30.0),
             follow_redirects=True,
         ) as client:
-            for term in search_terms:
-                self.logger.info("Guardian: searching for %r", term)
+            for feed_url in self.RSS_FEEDS:
+                self.logger.info("Guardian: fetching RSS feed %s", feed_url)
                 try:
-                    article_urls = await self._search(client, term, max_results_per_keyword)
+                    article_urls = await self._parse_rss(client, feed_url, max_results_per_feed)
                 except Exception:
-                    self.logger.exception("Guardian: search failed for %r", term)
+                    self.logger.exception("Guardian: RSS fetch failed for %s", feed_url)
                     continue
 
                 for url in article_urls:
@@ -317,47 +333,38 @@ class GuardianCollector(BaseCollector):
                     except Exception:
                         self.logger.exception("Guardian: failed to fetch %s", url)
 
-        self.logger.info("Guardian: collected %d articles", len(collected))
+        self.logger.info("Guardian: collected %d articles from RSS", len(collected))
         return collected
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
 
-    async def _search(
+    async def _parse_rss(
         self,
         client: httpx.AsyncClient,
-        query: str,
+        feed_url: str,
         max_results: int,
     ) -> list[str]:
-        """Return a list of article URLs from the Guardian search page."""
-        params = {"q": query}
-        response = await client.get(self.SEARCH_URL, params=params)
+        """Return a list of article URLs from the Guardian RSS feed."""
+        response = await client.get(feed_url)
         response.raise_for_status()
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.text, "xml")
         urls: list[str] = []
 
-        # Guardian search results: links within search result list items.
-        for link in soup.find_all("a", href=True):
-            href: str = link["href"]
-            if href.startswith("/"):
-                href = urljoin(self.BASE_URL, href)
-
-            # Keep only article pages (they have date-based paths).
-            if not re.search(r"theguardian\.com/.+/\d{4}/[a-z]{3}/\d{2}/", href):
-                continue
-            # Skip live blogs and galleries.
-            if "/live/" in href or "/gallery/" in href:
-                continue
-
-            if href not in urls:
-                urls.append(href)
+        # RSS items have <link> elements.
+        for item in soup.find_all("item"):
+            link_tag = item.find("link")
+            if link_tag:
+                href = link_tag.get_text(strip=True)
+                if href and href not in urls:
+                    urls.append(href)
 
             if len(urls) >= max_results:
                 break
 
-        self.logger.debug("Guardian: found %d result URLs for %r", len(urls), query)
+        self.logger.debug("Guardian: found %d article URLs in feed %s", len(urls), feed_url)
         return urls
 
     async def _fetch_article(

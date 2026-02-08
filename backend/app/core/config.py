@@ -18,8 +18,13 @@ class Settings(BaseSettings):
         "http://localhost:8080",
     ]
 
+    # Reddit API
+    REDDIT_CLIENT_ID: str = ""
+    REDDIT_CLIENT_SECRET: str = ""
+    REDDIT_USER_AGENT: str = "ThermocultureResearchBot/1.0 (academic research project)"
+
     model_config = {
-        "env_file": ".env",
+        "env_file": (".env", "../.env"),
         "env_file_encoding": "utf-8",
         "case_sensitive": True,
     }

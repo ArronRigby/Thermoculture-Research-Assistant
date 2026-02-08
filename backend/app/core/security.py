@@ -54,9 +54,11 @@ def verify_token(token: str) -> Optional[str]:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         subject: Optional[str] = payload.get("sub")
         if subject is None:
+            print("[Auth] Token payload missing 'sub'")
             return None
         return subject
-    except JWTError:
+    except JWTError as e:
+        print(f"[Auth] Token decode error: {str(e)}")
         return None
 
 
@@ -64,6 +66,7 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ):
+    print(f"[Auth] Received token: {token[:10]}...")
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -72,6 +75,7 @@ async def get_current_user(
 
     subject = verify_token(token)
     if subject is None:
+        print("[Auth] verify_token returned None")
         raise credentials_exception
 
     from app.models.models import User
@@ -80,12 +84,15 @@ async def get_current_user(
     user = result.scalar_one_or_none()
 
     if user is None:
+        print(f"[Auth] User not found for ID: {subject}")
         raise credentials_exception
 
     if not user.is_active:
+        print(f"[Auth] User account inactive: {user.email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user account",
         )
 
+    print(f"[Auth] Authenticated user: {user.email}")
     return user

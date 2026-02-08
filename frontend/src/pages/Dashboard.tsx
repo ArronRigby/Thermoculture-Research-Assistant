@@ -78,7 +78,7 @@ function statusBadge(status: JobStatus) {
 function SampleCard({ sample }: { sample: DiscourseSampleResponse }) {
   return (
     <Link
-      to={`/samples/${sample.id}`}
+      to={`/browse/${sample.id}`}
       className="block rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:shadow-md transition-shadow"
     >
       <h4 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-1 mb-1">
