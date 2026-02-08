@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(curl:*)",
+      "Bash(venv/Scripts/uvicorn:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxYzRlYjdhMi05MDhmLTQ4Y2QtOGU3OC0yMDkxYTcwNGEyYzkiLCJleHAiOjE3NzA1NTQ3MTIsImlhdCI6MTc3MDU1MTExMn0.JwYDWENiYx6L2NeTocyTkP4WgUTOS-ugLZ5lvKA9PLg\")",
+      "Bash(python:*)"
+    ]
+  }
+}
