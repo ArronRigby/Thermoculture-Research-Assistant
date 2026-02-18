@@ -212,7 +212,11 @@ async def list_sources(
 
 
 @sources_router.post("/", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
-async def create_source(payload: SourceCreate, db: AsyncSession = Depends(get_db)):
+async def create_source(
+    payload: SourceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     source = Source(**payload.model_dump())
     db.add(source)
     await db.flush()
@@ -221,7 +225,11 @@ async def create_source(payload: SourceCreate, db: AsyncSession = Depends(get_db
 
 
 @sources_router.get("/{source_id}", response_model=SourceResponse)
-async def get_source(source_id: str, db: AsyncSession = Depends(get_db)):
+async def get_source(
+    source_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(Source).where(Source.id == source_id))
     source = result.scalar_one_or_none()
     if source is None:
@@ -234,6 +242,7 @@ async def update_source(
     source_id: str,
     payload: SourceUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(select(Source).where(Source.id == source_id))
     source = result.scalar_one_or_none()
@@ -248,7 +257,11 @@ async def update_source(
 
 
 @sources_router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_source(source_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_source(
+    source_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(Source).where(Source.id == source_id))
     source = result.scalar_one_or_none()
     if source is None:
@@ -432,7 +445,11 @@ async def list_samples(
 
 
 @samples_router.post("/", response_model=DiscourseSampleResponse, status_code=status.HTTP_201_CREATED)
-async def create_sample(payload: DiscourseSampleCreate, db: AsyncSession = Depends(get_db)):
+async def create_sample(
+    payload: DiscourseSampleCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     # Validate source exists
     source_result = await db.execute(select(Source).where(Source.id == payload.source_id))
     if source_result.scalar_one_or_none() is None:
@@ -692,7 +709,10 @@ async def sentiment_over_time(
 
 
 @analysis_router.get("/theme-frequency", response_model=ThemeFrequencyResponse)
-async def theme_frequency(db: AsyncSession = Depends(get_db)):
+async def theme_frequency(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(
             Theme.id,
@@ -714,7 +734,10 @@ async def theme_frequency(db: AsyncSession = Depends(get_db)):
 
 
 @analysis_router.get("/geographic-distribution", response_model=GeographicDistributionResponse)
-async def geographic_distribution(db: AsyncSession = Depends(get_db)):
+async def geographic_distribution(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(
             Location.region,
@@ -745,7 +768,10 @@ async def geographic_distribution(db: AsyncSession = Depends(get_db)):
 
 
 @analysis_router.get("/discourse-types", response_model=DiscourseTypeResponse)
-async def discourse_types(db: AsyncSession = Depends(get_db)):
+async def discourse_types(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(
             DiscourseClassification.classification_type,
@@ -771,7 +797,10 @@ async def discourse_types(db: AsyncSession = Depends(get_db)):
 
 
 @analysis_router.get("/trending-themes", response_model=TrendingThemesResponse)
-async def trending_themes(db: AsyncSession = Depends(get_db)):
+async def trending_themes(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     now = datetime.now(timezone.utc)
     last_30_days = now - timedelta(days=30)
     previous_30_days_start = last_30_days - timedelta(days=30)
@@ -838,6 +867,7 @@ async def volume_timeline(
     date_to: Optional[datetime] = None,
     granularity: str = Query("day", regex="^(day|week|month)$"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     strftime_map = {
         "day": "%Y-%m-%d",
@@ -874,7 +904,10 @@ async def volume_timeline(
 
 
 @analysis_router.get("/sentiment-distribution", response_model=SentimentDistributionResponse)
-async def sentiment_distribution(db: AsyncSession = Depends(get_db)):
+async def sentiment_distribution(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(
             SentimentAnalysis.sentiment_label,
@@ -892,7 +925,10 @@ async def sentiment_distribution(db: AsyncSession = Depends(get_db)):
 
 
 @analysis_router.get("/map-locations", response_model=List[MapLocationItem])
-async def map_locations(db: AsyncSession = Depends(get_db)):
+async def map_locations(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(
             Location.name,
@@ -921,7 +957,10 @@ async def map_locations(db: AsyncSession = Depends(get_db)):
 
 
 @analysis_router.get("/theme-frequencies", response_model=ThemeFrequencyResponse)
-async def theme_frequencies(db: AsyncSession = Depends(get_db)):
+async def theme_frequencies(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(
             Theme.id,
@@ -942,7 +981,10 @@ async def theme_frequencies(db: AsyncSession = Depends(get_db)):
 
 
 @analysis_router.get("/theme-co-occurrence", response_model=ThemeCoOccurrenceResponse)
-async def theme_co_occurrence(db: AsyncSession = Depends(get_db)):
+async def theme_co_occurrence(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     st1 = sample_themes.alias("st1")
     st2 = sample_themes.alias("st2")
     t1 = Theme.__table__.alias("t1")
@@ -1430,6 +1472,7 @@ async def export_samples(
     source_types: Optional[str] = Query(None),
     search_query: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     parsed_location_ids = (
         [lid.strip() for lid in location_ids.split(",") if lid.strip()]

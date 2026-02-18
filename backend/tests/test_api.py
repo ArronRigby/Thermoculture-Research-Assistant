@@ -215,3 +215,37 @@ class TestExport:
             "/api/v1/export/samples?format=csv", headers=auth_headers
         )
         assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_create_source_requires_auth(client: AsyncClient):
+    response = await client.post("/api/v1/sources/", json={
+        "name": "Test", "source_type": "NEWS", "is_active": True
+    })
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_source_requires_auth(client: AsyncClient):
+    response = await client.delete("/api/v1/sources/nonexistent-id")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_analysis_theme_frequency_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/analysis/theme-frequency")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_export_samples_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/export/samples")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_sample_requires_auth(client: AsyncClient):
+    response = await client.post("/api/v1/samples/", json={
+        "title": "Test", "content": "Test", "source_id": "fake-id"
+    })
+    assert response.status_code == 401
