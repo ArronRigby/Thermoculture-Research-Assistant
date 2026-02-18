@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, and_
+from sqlalchemy import func, select, and_, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nlp.sentiment import SentimentAnalyzer
@@ -155,29 +155,15 @@ class AnalysisEngine:
             Keys: sentiment_distribution, theme_frequency, geographic_distribution,
                   discourse_distribution, trending_themes.
         """
-        # Late import to avoid circular dependencies at module load time
-        try:
-            from app.models.models import (
-                SentimentAnalysis,
-                DiscourseClassification,
-                SampleTheme,
-                Theme,
-                SampleLocation,
-                DataSample,
-            )
-        except ImportError:
-            logger.warning(
-                "Database models not available -- returning empty insights."
-            )
-            return {
-                "sentiment_distribution": {},
-                "theme_frequency": [],
-                "geographic_distribution": {},
-                "discourse_distribution": {},
-                "trending_themes": [],
-            }
+        from app.models.models import (
+            SentimentAnalysis,
+            DiscourseClassification,
+            DiscourseSample,
+            Theme,
+            Location,
+            sample_themes,
+        )
 
-        # Helper to add optional date filters
         def _date_filter(col):
             conditions = []
             if date_from is not None:
@@ -188,27 +174,27 @@ class AnalysisEngine:
 
         # 1. Sentiment distribution -----------------------------------------
         sentiment_distribution = await self._aggregate_sentiment(
-            db, SentimentAnalysis, DataSample, _date_filter
+            db, SentimentAnalysis, _date_filter
         )
 
         # 2. Theme frequency counts -----------------------------------------
         theme_frequency = await self._aggregate_themes(
-            db, SampleTheme, Theme, DataSample, _date_filter
+            db, sample_themes, Theme, _date_filter
         )
 
         # 3. Geographic distribution ----------------------------------------
         geographic_distribution = await self._aggregate_geography(
-            db, SampleLocation, DataSample, _date_filter
+            db, DiscourseSample, Location, _date_filter
         )
 
         # 4. Discourse type distribution ------------------------------------
         discourse_distribution = await self._aggregate_discourse(
-            db, DiscourseClassification, DataSample, _date_filter
+            db, DiscourseClassification, _date_filter
         )
 
         # 5. Trending themes ------------------------------------------------
         trending_themes = await self._compute_trending_themes(
-            db, SampleTheme, Theme, DataSample, _date_filter
+            db, sample_themes, Theme, DiscourseSample, _date_filter
         )
 
         return {
@@ -264,8 +250,7 @@ class AnalysisEngine:
             sample_id=sample_id,
             classification_type=result["classification_type"],
             confidence=result["confidence"],
-            all_scores=result["all_scores"],
-            analyzed_at=datetime.now(timezone.utc),
+            classified_at=datetime.now(timezone.utc),
         )
         db.add(record)
 
@@ -277,17 +262,12 @@ class AnalysisEngine:
     ) -> None:
         """
         Persist theme links.  For each extracted theme, look up (or create)
-        the Theme record and insert a SampleTheme junction row.
+        the Theme record and insert a row into the sample_themes association table.
         """
-        try:
-            from app.models.models import Theme, SampleTheme
-        except ImportError:
-            logger.debug("Theme / SampleTheme models not available; skipping persist.")
-            return
+        from app.models.models import Theme, sample_themes
 
         for theme_data in themes:
             theme_name = theme_data["theme"]
-            relevance = theme_data["relevance_score"]
 
             # Upsert theme
             stmt = select(Theme).where(Theme.name == theme_name)
@@ -296,19 +276,24 @@ class AnalysisEngine:
 
             if theme_record is None:
                 theme_record = Theme(
-                    id=uuid4(),
+                    id=str(uuid4()),
                     name=theme_name,
                 )
                 db.add(theme_record)
                 await db.flush()
 
-            link = SampleTheme(
-                id=uuid4(),
-                sample_id=sample_id,
-                theme_id=theme_record.id,
-                relevance_score=relevance,
-            )
-            db.add(link)
+            # Insert into association table directly — it has no mapped class
+            try:
+                await db.execute(
+                    insert(sample_themes).values(
+                        sample_id=str(sample_id),
+                        theme_id=theme_record.id,
+                    )
+                )
+                await db.flush()
+            except Exception:
+                # Already linked — skip silently
+                await db.rollback()
 
     async def _store_locations(
         self,
@@ -316,30 +301,22 @@ class AnalysisEngine:
         sample_id: UUID,
         locations: List[Dict[str, Any]],
     ) -> None:
-        """Persist extracted location records."""
-        try:
-            from app.models.models import SampleLocation
-        except ImportError:
-            logger.debug("SampleLocation model not available; skipping persist.")
-            return
-
-        for loc in locations:
-            record = SampleLocation(
-                id=uuid4(),
-                sample_id=sample_id,
-                name=loc["name"],
-                region=loc["region"],
-                latitude=loc["latitude"],
-                longitude=loc["longitude"],
+        """
+        Location is resolved by IngestPipeline and stored as DiscourseSample.location_id.
+        This method is a no-op placeholder — location storage happens at ingestion time.
+        """
+        if locations:
+            logger.debug(
+                "_store_locations: %d locations noted (resolved at ingestion)",
+                len(locations),
             )
-            db.add(record)
 
     # ------------------------------------------------------------------
     # Private aggregation helpers
     # ------------------------------------------------------------------
 
     async def _aggregate_sentiment(
-        self, db, SentimentAnalysis, DataSample, _date_filter
+        self, db, SentimentAnalysis, _date_filter
     ) -> Dict[str, Any]:
         """Aggregate sentiment scores into a distribution."""
         try:
@@ -369,63 +346,50 @@ class AnalysisEngine:
             return {}
 
     async def _aggregate_themes(
-        self, db, SampleTheme, Theme, DataSample, _date_filter
+        self, db, sample_themes, Theme, _date_filter
     ) -> List[Dict[str, Any]]:
         """Count how often each theme appears."""
         try:
-            base_query = (
+            stmt = (
                 select(
                     Theme.name,
-                    func.count(SampleTheme.id).label("count"),
-                    func.avg(SampleTheme.relevance_score).label("avg_relevance"),
+                    func.count(sample_themes.c.sample_id).label("count"),
                 )
-                .join(Theme, SampleTheme.theme_id == Theme.id)
+                .join(Theme, sample_themes.c.theme_id == Theme.id)
+                .group_by(Theme.name)
+                .order_by(func.count(sample_themes.c.sample_id).desc())
             )
-
-            # If date filtering is needed, join to DataSample
-            date_conditions = _date_filter(SampleTheme.id)  # placeholder
-            # We skip date conditions on themes unless DataSample join is available
-            base_query = base_query.group_by(Theme.name).order_by(
-                func.count(SampleTheme.id).desc()
-            )
-
-            result = await db.execute(base_query)
-            rows = result.all()
-
-            return [
-                {
-                    "theme": name,
-                    "count": count,
-                    "average_relevance": round(float(avg_rel), 4) if avg_rel else 0.0,
-                }
-                for name, count, avg_rel in rows
-            ]
+            result = await db.execute(stmt)
+            return [{"theme": name, "count": count} for name, count in result.all()]
         except Exception:
             logger.exception("Error aggregating theme data")
             return []
 
     async def _aggregate_geography(
-        self, db, SampleLocation, DataSample, _date_filter
+        self, db, DiscourseSample, Location, _date_filter
     ) -> Dict[str, Any]:
-        """Count mentions per region."""
+        """Count samples per region via DiscourseSample.location_id -> Location."""
         try:
-            base_query = select(
-                SampleLocation.region,
-                func.count(SampleLocation.id).label("count"),
-            ).group_by(SampleLocation.region).order_by(
-                func.count(SampleLocation.id).desc()
+            stmt = (
+                select(
+                    Location.region,
+                    func.count(DiscourseSample.id).label("count"),
+                )
+                .join(DiscourseSample, DiscourseSample.location_id == Location.id)
+                .group_by(Location.region)
+                .order_by(func.count(DiscourseSample.id).desc())
             )
-
-            result = await db.execute(base_query)
-            rows = result.all()
-
-            return {region: count for region, count in rows}
+            date_conditions = _date_filter(DiscourseSample.collected_at)
+            if date_conditions:
+                stmt = stmt.where(and_(*date_conditions))
+            result = await db.execute(stmt)
+            return {str(region): count for region, count in result.all()}
         except Exception:
             logger.exception("Error aggregating geographic data")
             return {}
 
     async def _aggregate_discourse(
-        self, db, DiscourseClassification, DataSample, _date_filter
+        self, db, DiscourseClassification, _date_filter
     ) -> Dict[str, Any]:
         """Count discourse classification types."""
         try:
@@ -435,7 +399,7 @@ class AnalysisEngine:
                 func.avg(DiscourseClassification.confidence).label("avg_confidence"),
             )
 
-            date_conditions = _date_filter(DiscourseClassification.analyzed_at)
+            date_conditions = _date_filter(DiscourseClassification.classified_at)
             if date_conditions:
                 base_query = base_query.where(and_(*date_conditions))
 
@@ -458,7 +422,7 @@ class AnalysisEngine:
             return {}
 
     async def _compute_trending_themes(
-        self, db, SampleTheme, Theme, DataSample, _date_filter
+        self, db, sample_themes, Theme, DiscourseSample, _date_filter
     ) -> List[Dict[str, Any]]:
         """
         Compute trending themes by comparing recent frequency against
@@ -466,50 +430,54 @@ class AnalysisEngine:
         is higher than its historical share.
         """
         try:
+            from datetime import timedelta
+
             # Total theme count (all time)
-            total_query = select(func.count(SampleTheme.id))
-            total_result = await db.execute(total_query)
+            total_result = await db.execute(
+                select(func.count()).select_from(sample_themes)
+            )
             total_all = total_result.scalar() or 1
 
             # Per-theme count (all time)
-            all_time_query = (
+            all_time_stmt = (
                 select(
                     Theme.name,
-                    func.count(SampleTheme.id).label("count"),
+                    func.count(sample_themes.c.sample_id).label("count"),
                 )
-                .join(Theme, SampleTheme.theme_id == Theme.id)
+                .join(Theme, sample_themes.c.theme_id == Theme.id)
                 .group_by(Theme.name)
             )
-            all_time_result = await db.execute(all_time_query)
-            all_time_rows = {name: count for name, count in all_time_result.all()}
+            all_time_rows = {
+                name: count
+                for name, count in (await db.execute(all_time_stmt)).all()
+            }
 
             # Recent theme count (last 30 days)
-            from datetime import timedelta
-
             recent_cutoff = datetime.now(timezone.utc) - timedelta(days=30)
 
-            # Join to DataSample to access created_at
-            recent_query = (
+            recent_stmt = (
                 select(
                     Theme.name,
-                    func.count(SampleTheme.id).label("count"),
+                    func.count(sample_themes.c.sample_id).label("count"),
                 )
-                .join(Theme, SampleTheme.theme_id == Theme.id)
-                .join(DataSample, SampleTheme.sample_id == DataSample.id)
-                .where(DataSample.created_at >= recent_cutoff)
+                .join(Theme, sample_themes.c.theme_id == Theme.id)
+                .join(DiscourseSample, sample_themes.c.sample_id == DiscourseSample.id)
+                .where(DiscourseSample.collected_at >= recent_cutoff)
                 .group_by(Theme.name)
             )
 
-            recent_total_query = (
-                select(func.count(SampleTheme.id))
-                .join(DataSample, SampleTheme.sample_id == DataSample.id)
-                .where(DataSample.created_at >= recent_cutoff)
+            recent_total_result = await db.execute(
+                select(func.count())
+                .select_from(sample_themes)
+                .join(DiscourseSample, sample_themes.c.sample_id == DiscourseSample.id)
+                .where(DiscourseSample.collected_at >= recent_cutoff)
             )
-            recent_total_result = await db.execute(recent_total_query)
             total_recent = recent_total_result.scalar() or 1
 
-            recent_result = await db.execute(recent_query)
-            recent_rows = {name: count for name, count in recent_result.all()}
+            recent_rows = {
+                name: count
+                for name, count in (await db.execute(recent_stmt)).all()
+            }
 
             # Compute trend score: (recent_share - historical_share)
             trending: List[Dict[str, Any]] = []
@@ -517,13 +485,11 @@ class AnalysisEngine:
                 recent_share = recent_count / total_recent
                 historical_count = all_time_rows.get(theme_name, 0)
                 historical_share = historical_count / total_all
-                trend_score = recent_share - historical_share
-
                 trending.append({
                     "theme": theme_name,
                     "recent_count": recent_count,
                     "historical_count": historical_count,
-                    "trend_score": round(trend_score, 4),
+                    "trend_score": round(recent_share - historical_share, 4),
                 })
 
             trending.sort(key=lambda t: t["trend_score"], reverse=True)

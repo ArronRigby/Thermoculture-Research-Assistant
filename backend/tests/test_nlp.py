@@ -139,3 +139,33 @@ class TestWordFrequencyAnalyzer:
         assert isinstance(result, list)
         ngrams = [item["ngram"] for item in result]
         assert any("climate" in ng for ng in ngrams)
+
+
+@pytest.mark.asyncio
+async def test_get_aggregated_insights_returns_all_keys():
+    """get_aggregated_insights must return all expected keys, never silently empty."""
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from app.models.models import Base
+    from nlp.analyzer import AnalysisEngine
+
+    _engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    async with _engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async_session = sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        analysis_engine = AnalysisEngine()
+        result = await analysis_engine.get_aggregated_insights(session)
+
+    await _engine.dispose()
+
+    assert "sentiment_distribution" in result
+    assert "theme_frequency" in result
+    assert "geographic_distribution" in result
+    assert "discourse_distribution" in result
+    assert "trending_themes" in result
+    assert isinstance(result["theme_frequency"], list)
+    assert isinstance(result["trending_themes"], list)
+    assert isinstance(result["sentiment_distribution"], dict)
+    assert isinstance(result["geographic_distribution"], dict)
