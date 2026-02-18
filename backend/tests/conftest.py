@@ -10,8 +10,8 @@ from app.core.database import get_db
 from app.models.models import Base, User, Source, Location, Theme, DiscourseSample, SourceType, Region
 from app.core.security import get_password_hash
 
-# Use SQLite for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# Use in-memory SQLite for tests to ensure full isolation between test functions
+TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -19,9 +19,13 @@ def event_loop():
     yield loop
     loop.close()
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def engine():
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        echo=False,
+        connect_args={"check_same_thread": False},
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
