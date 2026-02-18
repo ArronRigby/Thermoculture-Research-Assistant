@@ -20,7 +20,7 @@ class TestAuth:
                 "full_name": "New User",
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["email"] == "newuser@example.com"
         assert "id" in data

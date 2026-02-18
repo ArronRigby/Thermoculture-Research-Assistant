@@ -52,7 +52,7 @@ async def client(db_session):
 @pytest.fixture
 async def test_user(db_session):
     user = User(
-        id=uuid4(),
+        id=str(uuid4()),
         email="test@example.com",
         hashed_password=get_password_hash("testpassword123"),
         full_name="Test User",
@@ -75,7 +75,7 @@ async def auth_headers(client, test_user):
 @pytest.fixture
 async def test_source(db_session):
     source = Source(
-        id=uuid4(),
+        id=str(uuid4()),
         name="Test BBC News",
         source_type=SourceType.NEWS,
         url="https://www.bbc.co.uk/news",
@@ -90,7 +90,7 @@ async def test_source(db_session):
 @pytest.fixture
 async def test_location(db_session):
     location = Location(
-        id=uuid4(),
+        id=str(uuid4()),
         name="London",
         region=Region.LONDON,
         latitude=51.5074,
@@ -104,7 +104,7 @@ async def test_location(db_session):
 @pytest.fixture
 async def test_theme(db_session):
     theme = Theme(
-        id=uuid4(),
+        id=str(uuid4()),
         name="Extreme Weather",
         description="Flooding, storms, heatwaves",
         category="Environmental",
@@ -118,7 +118,7 @@ async def test_theme(db_session):
 async def test_sample(db_session, test_source, test_location):
     from datetime import datetime, timezone
     sample = DiscourseSample(
-        id=uuid4(),
+        id=str(uuid4()),
         title="Test Climate Article",
         content="London experienced severe flooding yesterday as heavy rains overwhelmed drainage systems.",
         source_id=test_source.id,
