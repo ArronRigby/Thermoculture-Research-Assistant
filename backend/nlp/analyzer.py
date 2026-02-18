@@ -223,8 +223,8 @@ class AnalysisEngine:
             return
 
         record = SentimentAnalysis(
-            id=uuid4(),
-            sample_id=sample_id,
+            id=str(uuid4()),
+            sample_id=str(sample_id),
             overall_sentiment=result["overall_sentiment"],
             sentiment_label=result["sentiment_label"],
             confidence=result["confidence"],
@@ -246,8 +246,8 @@ class AnalysisEngine:
             return
 
         record = DiscourseClassification(
-            id=uuid4(),
-            sample_id=sample_id,
+            id=str(uuid4()),
+            sample_id=str(sample_id),
             classification_type=result["classification_type"],
             confidence=result["confidence"],
             classified_at=datetime.now(timezone.utc),
@@ -282,8 +282,15 @@ class AnalysisEngine:
                 db.add(theme_record)
                 await db.flush()
 
-            # Insert into association table directly — it has no mapped class
-            try:
+            # Check if already linked before inserting to avoid rolling back
+            # the shared session on a duplicate-key error.
+            existing = await db.execute(
+                select(sample_themes).where(
+                    (sample_themes.c.sample_id == str(sample_id))
+                    & (sample_themes.c.theme_id == theme_record.id)
+                )
+            )
+            if existing.first() is None:
                 await db.execute(
                     insert(sample_themes).values(
                         sample_id=str(sample_id),
@@ -291,9 +298,6 @@ class AnalysisEngine:
                     )
                 )
                 await db.flush()
-            except Exception:
-                # Already linked — skip silently
-                await db.rollback()
 
     async def _store_locations(
         self,
@@ -355,6 +359,7 @@ class AnalysisEngine:
                     Theme.name,
                     func.count(sample_themes.c.sample_id).label("count"),
                 )
+                .select_from(sample_themes)
                 .join(Theme, sample_themes.c.theme_id == Theme.id)
                 .group_by(Theme.name)
                 .order_by(func.count(sample_themes.c.sample_id).desc())
@@ -444,6 +449,7 @@ class AnalysisEngine:
                     Theme.name,
                     func.count(sample_themes.c.sample_id).label("count"),
                 )
+                .select_from(sample_themes)
                 .join(Theme, sample_themes.c.theme_id == Theme.id)
                 .group_by(Theme.name)
             )
@@ -460,6 +466,7 @@ class AnalysisEngine:
                     Theme.name,
                     func.count(sample_themes.c.sample_id).label("count"),
                 )
+                .select_from(sample_themes)
                 .join(Theme, sample_themes.c.theme_id == Theme.id)
                 .join(DiscourseSample, sample_themes.c.sample_id == DiscourseSample.id)
                 .where(DiscourseSample.collected_at >= recent_cutoff)
