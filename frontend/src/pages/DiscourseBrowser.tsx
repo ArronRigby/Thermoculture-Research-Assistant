@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { fetchSamples, exportSamples } from '../api/endpoints';
 import ExportButton from '../components/ExportButton';
+import TagPills from '../components/TagPills';
 import type {
   FilterParams,
   SourceType,
@@ -264,6 +265,16 @@ const DiscourseBrowser: React.FC = () => {
     [searchInput]
   );
 
+  const handleTagToggle = useCallback((id: string) => {
+    setFilters((f) => {
+      const current = f.theme_ids ?? [];
+      const next = current.includes(id)
+        ? current.filter((t) => t !== id)
+        : [...current, id];
+      return { ...f, theme_ids: next.length ? next : undefined, page: 1 };
+    });
+  }, []);
+
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = data?.total_pages ?? 1;
@@ -291,6 +302,9 @@ const DiscourseBrowser: React.FC = () => {
           </svg>
         </div>
       </form>
+
+      {/* Tag Pills */}
+      <TagPills activeIds={filters.theme_ids ?? []} onToggle={handleTagToggle} />
 
       {/* Filters */}
       <FilterBar filters={filters} onChange={setFilters} />
