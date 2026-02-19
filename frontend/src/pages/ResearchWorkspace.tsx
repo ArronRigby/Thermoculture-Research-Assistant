@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import clsx from 'clsx';
@@ -13,10 +13,8 @@ import {
   fetchSamples,
   fetchSavedQuotes,
   deleteQuote,
-  exportNotes,
 } from '../api/endpoints';
 import type {
-  ResearchNoteResponse,
   DiscourseSampleResponse,
 } from '../types';
 

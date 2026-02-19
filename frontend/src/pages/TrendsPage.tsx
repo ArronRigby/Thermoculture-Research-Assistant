@@ -76,11 +76,11 @@ export default function TrendsPage() {
   });
   const themeFreqQ = useQuery({
     queryKey: ['theme-frequencies'],
-    queryFn: fetchThemeFrequencies,
+    queryFn: () => fetchThemeFrequencies(),
   });
   const discourseQ = useQuery({
     queryKey: ['discourse-types'],
-    queryFn: fetchDiscourseTypes,
+    queryFn: () => fetchDiscourseTypes(),
   });
   const statsQ = useQuery({
     queryKey: ['collection-stats'],

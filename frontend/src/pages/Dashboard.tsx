@@ -209,7 +209,7 @@ const Dashboard: React.FC = () => {
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           : statConfigs.map((cfg) => {
               const value = stats
-                ? (stats as Record<string, number>)[cfg.key] ?? 0
+                ? (stats as unknown as Record<string, number>)[cfg.key] ?? 0
                 : 0;
               return (
                 <div
