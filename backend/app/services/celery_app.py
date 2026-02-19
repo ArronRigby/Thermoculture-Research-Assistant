@@ -4,6 +4,7 @@ Celery application configuration for Thermoculture Research Assistant.
 Handles asynchronous task processing for data collection and NLP analysis.
 """
 
+import asyncio
 import os
 import logging
 
@@ -85,15 +86,15 @@ def run_collection_task(self, source_id: str, collector_type: str) -> dict:
     try:
         # Import collectors dynamically based on collector_type
         if collector_type == "reddit":
-            from app.collectors.reddit_collector import RedditCollector
+            from collectors.reddit_collector import RedditCollector
 
             collector = RedditCollector()
         elif collector_type == "arxiv":
-            from app.collectors.arxiv_collector import ArxivCollector
+            from collectors.arxiv_collector import ArxivCollector
 
             collector = ArxivCollector()
         elif collector_type == "web":
-            from app.collectors.web_collector import WebCollector
+            from collectors.web_collector import WebCollector
 
             collector = WebCollector()
         else:
@@ -183,40 +184,31 @@ def scheduled_collection() -> dict:
     """
     logger.info("Starting scheduled collection for all active sources")
 
-    try:
-        from app.models.source import Source
-        from app.db.session import get_sync_session
-
-        dispatched = []
-
-        with get_sync_session() as session:
-            active_sources = (
-                session.query(Source).filter(Source.is_active.is_(True)).all()
+    async def _fetch_active_sources():
+        from app.core.database import async_session_factory
+        from app.models.models import Source
+        from sqlalchemy import select
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(Source).where(Source.is_active.is_(True))
             )
+            sources = result.scalars().all()
+            return [
+                {"id": str(s.id), "source_type": s.source_type.value}
+                for s in sources
+            ]
 
-            for source in active_sources:
-                run_collection_task.delay(
-                    source_id=str(source.id),
-                    collector_type=source.collector_type,
-                )
-                dispatched.append(
-                    {
-                        "source_id": str(source.id),
-                        "collector_type": source.collector_type,
-                    }
-                )
-
-        logger.info(
-            "Scheduled collection dispatched %d tasks", len(dispatched)
-        )
-        return {
-            "status": "completed",
-            "dispatched_count": len(dispatched),
-            "dispatched": dispatched,
-        }
-
+    try:
+        active_sources = asyncio.run(_fetch_active_sources())
+        dispatched = []
+        for source in active_sources:
+            run_collection_task.delay(
+                source_id=source["id"],
+                collector_type=source["source_type"],
+            )
+            dispatched.append(source)
+        logger.info("Scheduled collection dispatched %d tasks", len(dispatched))
+        return {"status": "completed", "dispatched_count": len(dispatched), "dispatched": dispatched}
     except Exception as exc:
-        logger.error(
-            "Scheduled collection failed: %s", str(exc), exc_info=True
-        )
+        logger.error("Scheduled collection failed: %s", str(exc), exc_info=True)
         raise

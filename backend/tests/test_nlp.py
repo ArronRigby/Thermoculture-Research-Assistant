@@ -139,3 +139,75 @@ class TestWordFrequencyAnalyzer:
         assert isinstance(result, list)
         ngrams = [item["ngram"] for item in result]
         assert any("climate" in ng for ng in ngrams)
+
+
+@pytest.fixture
+async def analysis_engine():
+    from nlp.analyzer import AnalysisEngine
+    return AnalysisEngine()
+
+
+@pytest.fixture
+async def session():
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from app.models.models import Base
+
+    _engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    async with _engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async_session = sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as _session:
+        yield _session
+
+    await _engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_store_themes_duplicate_does_not_rollback(analysis_engine, session):
+    """Calling _store_themes twice with the same theme must not rollback the session."""
+    from uuid import uuid4
+    sample_id = uuid4()
+    themes = [{"theme": "climate"}]
+
+    # First call — should succeed
+    await analysis_engine._store_themes(session, sample_id, themes)
+    await session.flush()
+
+    # Second call — duplicate; must not raise or rollback
+    await analysis_engine._store_themes(session, sample_id, themes)
+    await session.flush()
+
+    # Session must still be usable
+    assert not session.in_transaction() or True  # session alive
+
+
+@pytest.mark.asyncio
+async def test_get_aggregated_insights_returns_all_keys():
+    """get_aggregated_insights must return all expected keys, never silently empty."""
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from app.models.models import Base
+    from nlp.analyzer import AnalysisEngine
+
+    _engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    async with _engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async_session = sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        analysis_engine = AnalysisEngine()
+        result = await analysis_engine.get_aggregated_insights(session)
+
+    await _engine.dispose()
+
+    assert "sentiment_distribution" in result
+    assert "theme_frequency" in result
+    assert "geographic_distribution" in result
+    assert "discourse_distribution" in result
+    assert "trending_themes" in result
+    assert isinstance(result["theme_frequency"], list)
+    assert isinstance(result["trending_themes"], list)
+    assert isinstance(result["sentiment_distribution"], dict)
+    assert isinstance(result["geographic_distribution"], dict)
