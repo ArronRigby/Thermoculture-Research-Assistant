@@ -8,6 +8,7 @@ import AnalysisInsights from './pages/AnalysisInsights'
 import ResearchWorkspace from './pages/ResearchWorkspace'
 import CollectionDashboard from './pages/CollectionDashboard'
 import Settings from './pages/Settings'
+import TrendsPage from './pages/TrendsPage'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -56,6 +57,7 @@ function App() {
           <Route path="/research" element={<ResearchWorkspace />} />
           <Route path="/collection" element={<CollectionDashboard />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/trends" element={<TrendsPage />} />
         </Route>
       </Routes>
     </>

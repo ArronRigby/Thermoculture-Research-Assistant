@@ -12,6 +12,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: '\u2302' },              // ⌂
   { to: '/browse', label: 'Discourse Browser', icon: '\u2637' }, // ☷
   { to: '/analysis', label: 'Analysis & Insights', icon: '\u2261' }, // ≡
+  { to: '/trends', label: 'Trends', icon: '\u21D1' },                // ⇑
   { to: '/research', label: 'Research Workspace', icon: '\u270E' }, // ✎
   { to: '/collection', label: 'Collection', icon: '\u21BB' },     // ↻
   { to: '/settings', label: 'Settings', icon: '\u2699' },         // ⚙
