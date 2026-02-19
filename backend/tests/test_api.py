@@ -71,7 +71,7 @@ class TestSources:
                 "description": "A new source",
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["name"] == "New Source"
 
@@ -87,7 +87,7 @@ class TestSources:
         response = await client.delete(
             f"/api/v1/sources/{test_source.id}", headers=auth_headers
         )
-        assert response.status_code == 200
+        assert response.status_code == 204
 
 class TestSamples:
     async def test_list_samples(self, client: AsyncClient, auth_headers, test_sample):
@@ -107,7 +107,7 @@ class TestSamples:
                 "source_id": str(test_source.id),
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["title"] == "Manual Entry Test"
 
@@ -149,7 +149,7 @@ class TestThemes:
                 "category": "Test",
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["name"] == "New Test Theme"
 
@@ -195,7 +195,7 @@ class TestResearchNotes:
                 "content": "# Test Note\n\nThis is a test research note with markdown content.",
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["title"] == "Test Research Note"
 
