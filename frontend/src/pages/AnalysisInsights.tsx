@@ -30,7 +30,6 @@ import {
   fetchSamples,
 } from '../api/endpoints';
 import UKMap from '../components/UKMap';
-import type { ClassificationType } from '../types';
 
 // ---------------------------------------------------------------------------
 // Constants
