@@ -1,6 +1,6 @@
 # feat/collection-pipeline Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Claude:** REQUIRED SUB-SKILL: Use the `executing-plans` skill from `C:\Users\Arron\.claude\plugins\marketplaces\conductor-orchestrator-superpowers\skills\executing-plans` to implement this plan task-by-task. Do NOT use `vbw:execute`.
 
 **Goal:** Add BBC News and Guardian collectors that run every 6 hours and automatically trigger NLP analysis on each new article.
 

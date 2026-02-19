@@ -1,6 +1,6 @@
 # feat/tags-and-trends Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Claude:** REQUIRED SUB-SKILL: Use the `executing-plans` skill from `C:\Users\Arron\.claude\plugins\marketplaces\conductor-orchestrator-superpowers\skills\executing-plans` to implement this plan task-by-task. Do NOT use `vbw:execute`.
 
 **Goal:** Surface existing NLP theme tags throughout the UI and add a `/trends` page showing theme trends, sentiment over time, and recent articles.
 
