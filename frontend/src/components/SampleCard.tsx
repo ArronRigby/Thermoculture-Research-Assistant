@@ -160,7 +160,7 @@ export default function SampleCard({ sample }: SampleCardProps) {
               key={theme.id}
               className="inline-block rounded bg-primary-50 px-1.5 py-0.5 text-[10px] font-medium text-primary-700"
             >
-              {theme.name}
+              ⚙ {theme.name}
             </span>
           ))}
           {sample.themes.length > 4 && (

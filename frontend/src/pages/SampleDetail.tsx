@@ -249,7 +249,7 @@ const SampleDetail: React.FC = () => {
                           key={t.id}
                           className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"
                         >
-                          {t.name}
+                          ⚙ {t.name}
                         </span>
                       ))}
                     </div>
