@@ -15,7 +15,23 @@ This project uses VBW (Vibe Better with Claude Code) for structured development.
 
 ## Installed Skills
 - find-skills (global)
+
+## Required Skills for Plan Execution
+When a plan file says `REQUIRED SUB-SKILL`, always use the skill from:
+`C:\Users\Arron\.claude\plugins\marketplaces\conductor-orchestrator-superpowers\skills\`
+
+Key skills for this project:
+- **`executing-plans`** — Use when a plan file says "Use superpowers:executing-plans". This is the correct skill for implementing plan tasks step-by-step.
+- **`writing-plans`** — Use when creating a new implementation plan from a spec.
+- **`verification-before-completion`** — Use before claiming any task is done or raising a PR.
+- **`finishing-a-development-branch`** — Use when all tasks are complete and the branch is ready to merge.
+- **`systematic-debugging`** — Use when encountering any bug or unexpected behaviour before proposing a fix.
+- **`requesting-code-review`** — Use before merging to verify work meets requirements.
+
+Do NOT use `vbw:execute` as a substitute for `executing-plans`. They are different skills.
+
 ## Project Conventions
+
 These conventions are enforced during planning and verified during QA.
 - Python functions and variables use snake_case
 - TypeScript strict mode enabled (strict: true in tsconfig)
@@ -27,6 +43,7 @@ These conventions are enforced during planning and verified during QA.
 - All API routes under /api/v1 prefix
 - TanStack React Query for server state management
 - Environment-based configuration via Pydantic Settings
+
 ## Commands
 Run /vbw:status for current progress.
 Run /vbw:help for all available commands.
