@@ -9,9 +9,16 @@ This project uses VBW (Vibe Better with Claude Code) for structured development.
 - **Do not fabricate content.** Only use what the user explicitly states in project-defining flows.
 ## State
 - Planning directory: `.vbw-planning/`
-- Active branch: `master` (fix/foundation merged)
-- Next branches: `feat/tags-and-trends` and `feat/collection-pipeline` (run in parallel from master)
+- Active branch: `master`
+- Merged: `fix/foundation` (PR #1), `feat/tags-and-trends` (PR #2)
+- Next branch: `feat/collection-pipeline` (cut from master)
 - Plans: `docs/plans/2026-02-18-*.md`
+
+## Environment Notes
+
+- **Git push:** Must be run from PowerShell/CMD — Windows Credential Manager auth does not work in the bash tool
+- **`gh` CLI:** Installed and authenticated but not in bash PATH; use PowerShell/CMD for `gh` commands
+- **VBW pre-push hook:** Was removed (`.git/hooks/pre-push`) — it was broken due to `set -euo pipefail` + missing VBW 1.30.0 scripts directory. Do not reinstall.
 
 ## Installed Skills
 - find-skills (global)
