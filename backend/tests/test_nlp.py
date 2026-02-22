@@ -128,17 +128,18 @@ class TestWordFrequencyAnalyzer:
         assert isinstance(result, list)
         assert len(result) <= 10
         words = [item["word"] for item in result]
-        assert "climate" in words or "flooding" in words
+        assert "flood" in words or "affect" in words
 
     def test_ngrams(self):
         texts = [
-            "climate change is real",
-            "climate change affects us all",
+            "flooding causes severe damage to homes",
+            "flooding causes major disruption every year",
         ]
         result = self.analyzer.get_ngrams(texts, n=2, top_n=5)
         assert isinstance(result, list)
+        assert len(result) > 0
         ngrams = [item["ngram"] for item in result]
-        assert any("climate" in ng for ng in ngrams)
+        assert any("flood" in ng for ng in ngrams)
 
 
 @pytest.fixture

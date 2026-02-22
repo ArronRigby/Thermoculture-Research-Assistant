@@ -178,10 +178,9 @@ _GEO_CONTEXT_WORDS: set[str] = {
     "city", "town", "council", "borough", "county", "area", "region",
     "resident", "residents", "constituency", "mp", "mps", "mayor",
     "station", "airport", "university", "hospital", "school",
-    "flooding", "flood", "weather", "temperature", "climate",
+    "flooding", "flood", "climate",
     "road", "street", "high street", "centre", "center",
     "north", "south", "east", "west", "near", "based in", "living in",
-    "from", "in", "at",
 }
 
 # Pre-compile patterns for performance.

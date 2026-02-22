@@ -1,7 +1,7 @@
 import pytest
 from collectors.base import CollectedItem, BaseCollector
 from collectors.locations import find_locations
-from collectors.pipeline import IngestPipeline
+from collectors.pipeline import IngestPipeline, _normalise_text, _content_hash
 from datetime import datetime
 
 class TestCollectedItem:
@@ -46,15 +46,13 @@ class TestLocationFinder:
 
 class TestIngestPipeline:
     def test_normalize_text(self):
-        pipeline = IngestPipeline()
         text = "  Hello   World  \n\n  "
-        normalized = pipeline._normalize_text(text)
+        normalized = _normalise_text(text)
         assert normalized == "Hello World"
 
     def test_content_hash(self):
-        pipeline = IngestPipeline()
-        hash1 = pipeline._compute_hash("Hello World")
-        hash2 = pipeline._compute_hash("Hello World")
-        hash3 = pipeline._compute_hash("Different content")
+        hash1 = _content_hash("Hello World")
+        hash2 = _content_hash("Hello World")
+        hash3 = _content_hash("Different content")
         assert hash1 == hash2
         assert hash1 != hash3
