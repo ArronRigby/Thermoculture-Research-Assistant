@@ -13,12 +13,6 @@ from app.core.security import get_password_hash
 # Use in-memory SQLite for tests to ensure full isolation between test functions
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
 @pytest.fixture
 async def engine():
     engine = create_async_engine(

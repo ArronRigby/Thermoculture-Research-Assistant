@@ -54,3 +54,10 @@ These conventions are enforced during planning and verified during QA.
 ## Commands
 Run /vbw:status for current progress.
 Run /vbw:help for all available commands.
+
+## Version & SDK Policy
+When writing code that uses any external SDK, API, or AI model:
+- STOP before writing any import or install command
+- Search for the latest package version, correct model identifiers, and current initialization pattern
+- Use what you find, NOT your training data
+
