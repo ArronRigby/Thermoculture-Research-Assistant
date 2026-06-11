@@ -249,3 +249,82 @@ async def test_create_sample_requires_auth(client: AsyncClient):
         "title": "Test", "content": "Test", "source_id": "fake-id"
     })
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_sample_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/samples/some-id")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_sample_requires_auth(client: AsyncClient):
+    response = await client.delete("/api/v1/samples/some-id")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_sample_analysis_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/samples/some-id/analysis")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_theme_requires_auth(client: AsyncClient):
+    response = await client.post("/api/v1/themes/", json={"name": "Test Theme"})
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_theme_samples_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/themes/some-id/samples")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_location_requires_auth(client: AsyncClient):
+    response = await client.post("/api/v1/locations/", json={"name": "Test Location"})
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_location_samples_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/locations/some-id/samples")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_citation_requires_auth(client: AsyncClient):
+    response = await client.post("/api/v1/citations/", json={"sample_id": "some-id", "format": "APA"})
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_sample_citations_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/citations/sample/some-id")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_list_jobs_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/jobs/")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_start_job_requires_auth(client: AsyncClient):
+    response = await client.post("/api/v1/jobs/start", json={"source_id": "some-id"})
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_job_stats_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/jobs/stats")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_job_status_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/jobs/some-id/status")
+    assert response.status_code == 401
+

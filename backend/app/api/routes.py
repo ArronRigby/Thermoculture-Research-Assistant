@@ -478,7 +478,11 @@ async def create_sample(
 
 
 @samples_router.get("/{sample_id}", response_model=DiscourseSampleDetailResponse)
-async def get_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
+async def get_sample(
+    sample_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(DiscourseSample)
         .options(
@@ -496,7 +500,11 @@ async def get_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @samples_router.delete("/{sample_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_sample(
+    sample_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(DiscourseSample).where(DiscourseSample.id == sample_id))
     sample = result.scalar_one_or_none()
     if sample is None:
@@ -507,7 +515,11 @@ async def delete_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @samples_router.get("/{sample_id}/analysis", response_model=SampleAnalysisResponse)
-async def get_sample_analysis(sample_id: str, db: AsyncSession = Depends(get_db)):
+async def get_sample_analysis(
+    sample_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = (
         select(DiscourseSample)
         .options(
@@ -543,7 +555,11 @@ async def list_themes(
 
 
 @themes_router.post("/", response_model=ThemeResponse, status_code=status.HTTP_201_CREATED)
-async def create_theme(payload: ThemeCreate, db: AsyncSession = Depends(get_db)):
+async def create_theme(
+    payload: ThemeCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     existing = await db.execute(select(Theme).where(Theme.name == payload.name))
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(
@@ -563,6 +579,7 @@ async def get_theme_samples(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     # Verify theme exists
     theme_result = await db.execute(select(Theme).where(Theme.id == theme_id))
@@ -613,7 +630,11 @@ async def list_locations(
 
 
 @locations_router.post("/", response_model=LocationResponse, status_code=status.HTTP_201_CREATED)
-async def create_location(payload: LocationCreate, db: AsyncSession = Depends(get_db)):
+async def create_location(
+    payload: LocationCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     location = Location(**payload.model_dump())
     db.add(location)
     await db.flush()
@@ -627,6 +648,7 @@ async def get_location_samples(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     loc_result = await db.execute(select(Location).where(Location.id == location_id))
     if loc_result.scalar_one_or_none() is None:
@@ -1214,6 +1236,7 @@ def _generate_citation_text(
 async def generate_citation(
     payload: CitationCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
         select(DiscourseSample).where(DiscourseSample.id == payload.sample_id)
@@ -1244,7 +1267,11 @@ async def generate_citation(
 
 
 @citations_router.get("/sample/{sample_id}", response_model=List[CitationResponse])
-async def get_sample_citations(sample_id: str, db: AsyncSession = Depends(get_db)):
+async def get_sample_citations(
+    sample_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     # Verify sample exists
     sample_result = await db.execute(
         select(DiscourseSample).where(DiscourseSample.id == sample_id)
@@ -1354,7 +1381,10 @@ async def _run_collection_in_background(
 
 
 @jobs_router.get("/", response_model=List[CollectionJobResponse])
-async def list_jobs(db: AsyncSession = Depends(get_db)):
+async def list_jobs(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = select(CollectionJob).order_by(CollectionJob.started_at.desc().nulls_last())
     result = await db.execute(stmt)
     return result.scalars().all()
@@ -1365,6 +1395,7 @@ async def start_collection_job(
     payload: CollectionJobCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     logger.info(f"DEBUG: start_collection_job called for source {payload.source_id}")
     # Verify source
@@ -1418,7 +1449,10 @@ async def start_collection_job(
 
 
 @jobs_router.get("/stats", response_model=CollectionStatsResponse)
-async def collection_stats(db: AsyncSession = Depends(get_db)):
+async def collection_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=now.weekday())
@@ -1449,7 +1483,11 @@ async def collection_stats(db: AsyncSession = Depends(get_db)):
 
 
 @jobs_router.get("/{job_id}/status", response_model=CollectionJobResponse)
-async def get_job_status(job_id: str, db: AsyncSession = Depends(get_db)):
+async def get_job_status(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     result = await db.execute(select(CollectionJob).where(CollectionJob.id == job_id))
     job = result.scalar_one_or_none()
     if job is None:
