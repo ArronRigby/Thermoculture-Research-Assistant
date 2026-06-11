@@ -117,7 +117,7 @@ export async function fetchSampleDetail(
   id: string,
 ): Promise<DiscourseSampleDetailResponse> {
   const { data } = await apiClient.get<DiscourseSampleDetailResponse>(
-    `/samples/${id}/`,
+    `/samples/${id}`,
   );
   return data;
 }
@@ -140,7 +140,7 @@ export async function fetchSampleAnalysis(
   sampleId: string,
 ): Promise<SampleAnalysisResponse> {
   const { data } = await apiClient.get<SampleAnalysisResponse>(
-    `/samples/${sampleId}/analysis/`,
+    `/samples/${sampleId}/analysis`,
   );
   return data;
 }
@@ -261,7 +261,7 @@ export async function fetchJobStatus(
   id: string,
 ): Promise<CollectionJobResponse> {
   const { data } = await apiClient.get<CollectionJobResponse>(
-    `/jobs/${id}/status/`,
+    `/jobs/${id}/status`,
   );
   return data;
 }
@@ -338,7 +338,7 @@ export async function createCitation(
   payload: CitationCreate,
 ): Promise<CitationResponse> {
   const { data } = await apiClient.post<CitationResponse>(
-    '/citations',
+    '/citations/',
     payload,
   );
   return data;
@@ -348,7 +348,7 @@ export async function fetchCitationsForSample(
   sampleId: string,
 ): Promise<CitationResponse[]> {
   const { data } = await apiClient.get<CitationResponse[]>(
-    `/citations/sample/${sampleId}/`,
+    `/citations/sample/${sampleId}`,
   );
   return data;
 }
