@@ -350,7 +350,10 @@ function StartCollectionModal({ onClose }: { onClose: () => void }) {
       toast.success('Collection job started');
       onClose();
     },
-    onError: () => toast.error('Failed to start collection'),
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || 'Failed to start collection';
+      toast.error(msg);
+    },
   });
 
   const sources = (sourcesQ.data ?? []).filter((s) => s.is_active);
@@ -694,6 +697,7 @@ const CollectionDashboard: React.FC = () => {
                       <td className="py-3 px-3 text-center">
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(job.status)}`}
+                          title={job.status === 'FAILED' && job.error_message ? job.error_message : undefined}
                         >
                           {job.status}
                         </span>

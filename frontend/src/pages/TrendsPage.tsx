@@ -28,7 +28,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 function ProvenanceBar({ thisMonth }: { thisMonth: number }) {
   return (
     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-      {thisMonth.toLocaleString()} articles collected this month
+      {thisMonth.toLocaleString()} collection runs this month
     </p>
   );
 }
