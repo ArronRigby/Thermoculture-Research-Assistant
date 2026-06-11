@@ -16,6 +16,7 @@ from app.api.routes import (
     samples_router,
     sources_router,
     themes_router,
+    quotes_router,
 )
 from app.core.config import settings
 
@@ -61,6 +62,7 @@ app.include_router(notes_router, prefix=settings.API_V1_PREFIX)
 app.include_router(citations_router, prefix=settings.API_V1_PREFIX)
 app.include_router(jobs_router, prefix=settings.API_V1_PREFIX)
 app.include_router(export_router, prefix=settings.API_V1_PREFIX)
+app.include_router(quotes_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")

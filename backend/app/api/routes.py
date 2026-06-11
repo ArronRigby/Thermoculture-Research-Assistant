@@ -40,6 +40,7 @@ from app.models.models import (
     User,
     note_samples,
     sample_themes,
+    SavedQuote,
 )
 from app.schemas.schemas import (
     CitationCreate,
@@ -88,6 +89,8 @@ from app.schemas.schemas import (
     TrendingThemesResponse,
     UserCreate,
     UserResponse,
+    SavedQuoteCreate,
+    SavedQuoteResponse,
 )
 
 # ---------------------------------------------------------------------------
@@ -105,6 +108,7 @@ notes_router = APIRouter(prefix="/notes", tags=["Research Notes"])
 citations_router = APIRouter(prefix="/citations", tags=["Citations"])
 jobs_router = APIRouter(prefix="/jobs", tags=["Collection Jobs"])
 export_router = APIRouter(prefix="/export", tags=["Export"])
+quotes_router = APIRouter(prefix="/quotes", tags=["Saved Quotes"])
 
 
 # ===========================================================================
@@ -1670,3 +1674,110 @@ async def export_notes(
         media_type="application/json",
         headers={"Content-Disposition": "attachment; filename=notes_export.json"},
     )
+
+
+# ===========================================================================
+# SAVED QUOTES
+# ===========================================================================
+
+
+@quotes_router.get("/", response_model=List[SavedQuoteResponse])
+async def list_saved_quotes(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    stmt = (
+        select(SavedQuote)
+        .options(
+            selectinload(SavedQuote.sample).selectinload(DiscourseSample.source)
+        )
+        .where(SavedQuote.user_id == current_user.id)
+        .order_by(SavedQuote.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    quotes = result.scalars().all()
+
+    response_data = []
+    for q in quotes:
+        sample = q.sample
+        source_name = sample.source.name if sample and sample.source else "Unknown Source"
+        author = sample.author if sample else None
+        citation = _generate_citation_text(sample, CitationFormat.APA) if sample else ""
+        response_data.append(
+            SavedQuoteResponse(
+                id=q.id,
+                sample_id=q.sample_id,
+                text=q.text,
+                source_name=source_name,
+                author=author,
+                citation=citation,
+                saved_at=q.created_at,
+            )
+        )
+    return response_data
+
+
+@quotes_router.post("/", response_model=SavedQuoteResponse, status_code=status.HTTP_201_CREATED)
+async def save_quote(
+    payload: SavedQuoteCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Verify sample exists
+    result = await db.execute(
+        select(DiscourseSample)
+        .options(selectinload(DiscourseSample.source))
+        .where(DiscourseSample.id == payload.sample_id)
+    )
+    sample = result.scalar_one_or_none()
+    if sample is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sample not found",
+        )
+
+    quote = SavedQuote(
+        user_id=current_user.id,
+        sample_id=payload.sample_id,
+        text=payload.text,
+    )
+    db.add(quote)
+    await db.flush()
+    await db.refresh(quote)
+
+    source_name = sample.source.name if sample.source else "Unknown Source"
+    citation = _generate_citation_text(sample, CitationFormat.APA)
+
+    return SavedQuoteResponse(
+        id=quote.id,
+        sample_id=quote.sample_id,
+        text=quote.text,
+        source_name=source_name,
+        author=sample.author,
+        citation=citation,
+        saved_at=quote.created_at,
+    )
+
+
+@quotes_router.delete("/{quote_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_saved_quote(
+    quote_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(SavedQuote).where(SavedQuote.id == quote_id))
+    quote = result.scalar_one_or_none()
+    if quote is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Saved quote not found",
+        )
+    if quote.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this quote",
+        )
+    await db.delete(quote)
+    await db.flush()
+    return None
+

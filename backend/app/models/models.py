@@ -124,6 +124,9 @@ class User(Base):
     research_notes: Mapped[List["ResearchNote"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    saved_quotes: Mapped[List["SavedQuote"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Source(Base):
@@ -311,3 +314,21 @@ class CollectionJob(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     source: Mapped["Source"] = relationship(back_populates="collection_jobs")
+
+
+class SavedQuote(Base):
+    __tablename__ = "saved_quotes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_genuuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    sample_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("discourse_samples.id", ondelete="CASCADE"), nullable=False
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow, nullable=False)
+
+    user: Mapped["User"] = relationship(back_populates="saved_quotes")
+    sample: Mapped["DiscourseSample"] = relationship()
+

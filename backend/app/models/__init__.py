@@ -17,6 +17,7 @@ from app.models.models import (
     User,
     note_samples,
     sample_themes,
+    SavedQuote,
 )
 
 __all__ = [
@@ -38,4 +39,5 @@ __all__ = [
     "User",
     "note_samples",
     "sample_themes",
+    "SavedQuote",
 ]

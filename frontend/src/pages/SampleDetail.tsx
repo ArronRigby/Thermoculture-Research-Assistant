@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -96,6 +97,13 @@ const SampleDetail: React.FC = () => {
 
   const quoteMut = useMutation({
     mutationFn: (text: string) => saveQuote(id!, text),
+    onSuccess: () => {
+      toast.success('Quote added to library');
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || 'Failed to save quote';
+      toast.error(msg);
+    },
   });
 
   const citationPreviewQ = useQuery({
@@ -336,7 +344,7 @@ const SampleDetail: React.FC = () => {
               {quoteMut.isPending ? 'Saving...' : 'Add to Quote Library'}
             </button>
             <Link
-              to="/workspace"
+              to="/research"
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,7 +450,7 @@ const SampleDetail: React.FC = () => {
             </h3>
             <p className="text-xs text-gray-400 dark:text-gray-500">
               Link this sample to research notes in the{' '}
-              <Link to="/workspace" className="text-blue-600 hover:underline dark:text-blue-400">
+              <Link to="/research" className="text-blue-600 hover:underline dark:text-blue-400">
                 Research Workspace
               </Link>.
             </p>

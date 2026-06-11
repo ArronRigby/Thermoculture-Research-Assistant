@@ -281,7 +281,7 @@ class DiscourseClassificationResponse(BaseModel):
 
 class ResearchNoteCreate(BaseModel):
     title: str = Field(min_length=1, max_length=512)
-    content: str = Field(min_length=1)
+    content: str = Field(default="")
 
 
 class ResearchNoteUpdate(BaseModel):
@@ -493,3 +493,25 @@ class SampleAnalysisResponse(BaseModel):
     sentiments: List[SentimentAnalysisResponse]
     classifications: List[DiscourseClassificationResponse]
     themes: List[ThemeResponse]
+
+
+# ---------------------------------------------------------------------------
+# Saved Quotes schemas
+# ---------------------------------------------------------------------------
+
+class SavedQuoteCreate(BaseModel):
+    sample_id: str
+    text: str
+
+
+class SavedQuoteResponse(BaseModel):
+    id: str
+    sample_id: str
+    text: str
+    source_name: str
+    author: Optional[str] = None
+    citation: str
+    saved_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
