@@ -42,7 +42,7 @@ passed and a check-in entry exists.
 
 - [x] **Batch 1 — Security:** auth on all non-public endpoints (incl. DELETE /samples,
       POST /jobs/start), 401 tests first, remove token/email logging, fail-fast SECRET_KEY.
-- [ ] **Batch 2 — Make NLP real:** delete dead Celery layer (+compose services, dep),
+- [x] **Batch 2 — Make NLP real:** delete dead Celery layer (+compose services, dep),
       trigger `AnalysisEngine` from `IngestPipeline.ingest_items`, no-signal text returns
       no classification, remove discarded GeoExtractor wiring.
 - [ ] **Batch 3 — Collection correctness:** 422 before creating jobs with no collector,
@@ -74,7 +74,7 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 
 | # | Decision | Default | Status |
 |---|----------|---------|--------|
-| D1 | Celery vs BackgroundTasks | Delete Celery; keep BackgroundTasks | pending (B2) |
+| D1 | Celery vs BackgroundTasks | Delete Celery; keep BackgroundTasks | completed (B2) |
 | D2 | Quote Library | Build minimal backend (UI + README already promise it) | pending (B5) |
 | D3 | wordcloud_data.py | Delete (no endpoint uses it) | pending (B6) |
 | D4 | docker-compose | Trim to backend+frontend; SQLite stays | pending (B7) |
@@ -95,6 +95,17 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 ---
 
 ## Check-in Log
+
+### [0003] 2026-06-11 — fix/batch-2-nlp — Make the NLP pipeline real
+**Batch/scope:** Batch 2 — Make NLP real
+**Work completed:**
+- Task 1: Deleted dead Celery layer and configuration (efe5a4a)
+- Task 2: Triggered NLP AnalysisEngine on sample ingestion inside IngestPipeline (1b83ee7)
+- Task 3: Stop classifying empty/no-signal text as PRACTICAL_ADAPTATION (fafd692)
+- Task 4: Removed GeoExtractor wiring and unused location store/aggregations from analyzer (fafd692)
+**Verification:** pytest 75 passed | tsc clean | lint not-applicable
+**Decisions made:** D1 (Delete Celery; keep BackgroundTasks) completed.
+**Deferred/noticed:** Spotted that `nlp/geographic.py` is now dead code (to be deleted in Batch 6).
 
 ### [0002] 2026-06-11 — fix/batch-1-auth — Security: auth coverage and logging cleanup
 **Batch/scope:** Batch 1 — Security
