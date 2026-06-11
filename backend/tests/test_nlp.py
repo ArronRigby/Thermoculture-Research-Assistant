@@ -72,6 +72,22 @@ class TestDiscourseClassifier:
         results = self.classifier.classify_batch(texts)
         assert len(results) == 2
 
+    def test_empty_or_no_signal(self):
+        # Empty text
+        res = self.classifier.classify("")
+        assert res["classification_type"] is None
+        assert res["confidence"] == 0.0
+
+        # Whitespace only
+        res = self.classifier.classify("   \n \t  ")
+        assert res["classification_type"] is None
+        assert res["confidence"] == 0.0
+
+        # No keywords match (zero signal)
+        res = self.classifier.classify("the quick brown fox jumps over the lazy dog")
+        assert res["classification_type"] is None
+        assert res["confidence"] == 0.0
+
 class TestThemeExtractor:
     def setup_method(self):
         self.extractor = ThemeExtractor()

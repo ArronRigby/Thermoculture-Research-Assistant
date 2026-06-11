@@ -148,7 +148,6 @@ CATEGORY_KEYWORDS: Dict[str, List[Tuple[str, float]]] = {
         ("petition", 1.3),
         ("march", 0.8),
         ("rally", 1.1),
-        ("rally", 1.1),
         ("mutual aid", 1.4),
         ("cooperative", 1.1),
         ("co-op", 1.0),
@@ -286,14 +285,22 @@ class DiscourseClassifier:
             ``all_scores``          : dict  -- normalised scores for every category
         """
         if not text or not text.strip():
-            normalised = self._normalise({cat: 0.0 for cat in self.CATEGORIES})
+            normalised = {cat: 0.0 for cat in self.CATEGORIES}
             return {
-                "classification_type": self.CATEGORIES[0],
-                "confidence": round(1.0 / len(self.CATEGORIES), 4),
+                "classification_type": None,
+                "confidence": 0.0,
                 "all_scores": normalised,
             }
 
         raw_scores = self._score_text(text)
+        if sum(raw_scores.values()) == 0:
+            normalised = {cat: 0.0 for cat in self.CATEGORIES}
+            return {
+                "classification_type": None,
+                "confidence": 0.0,
+                "all_scores": normalised,
+            }
+
         normalised = self._normalise(raw_scores)
 
         # Pick the highest scoring category

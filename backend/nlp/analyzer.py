@@ -19,7 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nlp.sentiment import SentimentAnalyzer
 from nlp.theme_extractor import ThemeExtractor
 from nlp.classifier import DiscourseClassifier
-from nlp.geographic import GeoExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,6 @@ class AnalysisEngine:
         self.sentiment_analyzer = SentimentAnalyzer()
         self.theme_extractor = ThemeExtractor()
         self.discourse_classifier = DiscourseClassifier()
-        self.geo_extractor = GeoExtractor()
 
     # ------------------------------------------------------------------
     # Single-sample analysis
@@ -69,13 +67,11 @@ class AnalysisEngine:
         theme_results = self.theme_extractor.extract_themes(content)
         keywords = self.theme_extractor.get_keywords(content, top_n=10)
         classification_result = self.discourse_classifier.classify(content)
-        location_results = self.geo_extractor.extract_locations(content)
 
         # Persist to database ------------------------------------------------
         await self._store_sentiment(db, sample_id, sentiment_result)
         await self._store_classification(db, sample_id, classification_result)
         await self._store_themes(db, sample_id, theme_results)
-        await self._store_locations(db, sample_id, location_results)
 
         # Flush to get IDs assigned without committing the transaction
         await db.flush()
@@ -86,7 +82,6 @@ class AnalysisEngine:
             "themes": theme_results,
             "keywords": keywords,
             "classification": classification_result,
-            "locations": location_results,
         }
 
     # ------------------------------------------------------------------
@@ -239,6 +234,9 @@ class AnalysisEngine:
         result: Dict[str, Any],
     ) -> None:
         """Persist a DiscourseClassification record."""
+        if result.get("classification_type") is None:
+            return
+
         try:
             from app.models.models import DiscourseClassification
         except ImportError:
@@ -298,22 +296,6 @@ class AnalysisEngine:
                     )
                 )
                 await db.flush()
-
-    async def _store_locations(
-        self,
-        db: AsyncSession,
-        sample_id: UUID,
-        locations: List[Dict[str, Any]],
-    ) -> None:
-        """
-        Location is resolved by IngestPipeline and stored as DiscourseSample.location_id.
-        This method is a no-op placeholder — location storage happens at ingestion time.
-        """
-        if locations:
-            logger.debug(
-                "_store_locations: %d locations noted (resolved at ingestion)",
-                len(locations),
-            )
 
     # ------------------------------------------------------------------
     # Private aggregation helpers
