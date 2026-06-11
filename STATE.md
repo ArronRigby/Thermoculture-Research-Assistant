@@ -48,7 +48,7 @@ passed and a check-in entry exists.
 - [x] **Batch 3 — Collection correctness:** 422 before creating jobs with no collector,
       `content_hash` column + global unique dedup, sane `_batch_insert`, remove
       `asyncio.sleep(1)` hack + DEBUG log prefixes, Reddit creds fail fast.
-- [ ] **Batch 4 — API correctness:** sentiment sort without row duplication, sort_by
+- [x] **Batch 4 — API correctness:** sentiment sort without row duplication, sort_by
       whitelist, single theme-frequency endpoint, citation preview endpoint as single
       source of truth (MLA 9), ordered analysis results, exact path matching in
       endpoints.ts, consistent count queries.
@@ -95,6 +95,21 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 ---
 
 ## Check-in Log
+
+### [0005] 2026-06-11 — fix/batch-4-api — API correctness
+**Batch/scope:** Batch 4 — API correctness
+**Work completed:**
+- Task 1: Fix duplicate/skipped rows when sorting by sentiment via a scalar correlated subquery (34f8a6b)
+- Task 2: Whitelist sort_by query parameter falling back to collected_at (79fc78b)
+- Task 3: Consolidate theme frequency endpoints to outer join /theme-frequencies (252c1d7)
+- Task 4: Expose preview GET /citations/preview returning MLA 9 / Chicago formatting, used in frontend SampleDetail (b7f29bb)
+- Task 5: Order sample analysis results descending by analysis/classification date (cf3f621)
+- Task 6: Normalize API paths in frontend client to match backend exactly (7d559c0)
+- Task 7: Wrap dashboard count queries in select() for query consistency (6138050)
+- Test: Add suite for all Batch 4 backend requirements (10d9990)
+**Verification:** pytest 84 passed | tsc clean | lint not-applicable
+**Decisions made:** None.
+**Deferred/noticed:** None.
 
 ### [0004] 2026-06-11 — fix/batch-3-collection — Collection correctness
 **Batch/scope:** Batch 3 — Collection correctness
