@@ -45,7 +45,7 @@ passed and a check-in entry exists.
 - [x] **Batch 2 — Make NLP real:** delete dead Celery layer (+compose services, dep),
       trigger `AnalysisEngine` from `IngestPipeline.ingest_items`, no-signal text returns
       no classification, remove discarded GeoExtractor wiring.
-- [ ] **Batch 3 — Collection correctness:** 422 before creating jobs with no collector,
+- [x] **Batch 3 — Collection correctness:** 422 before creating jobs with no collector,
       `content_hash` column + global unique dedup, sane `_batch_insert`, remove
       `asyncio.sleep(1)` hack + DEBUG log prefixes, Reddit creds fail fast.
 - [ ] **Batch 4 — API correctness:** sentiment sort without row duplication, sort_by
@@ -95,6 +95,18 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 ---
 
 ## Check-in Log
+
+### [0004] 2026-06-11 — fix/batch-3-collection — Collection correctness
+**Batch/scope:** Batch 3 — Collection correctness
+**Work completed:**
+- Task 1: Resolve and validate collector type, returning 422 for sources without usable collector (f0ac98d)
+- Task 2: Dedicated unique indexed column `DiscourseSample.content_hash` for global cross-source deduplication (b7c4063)
+- Task 3: Simplify batch insert using nested savepoints and graceful conflict expunging without transaction rollback (26509fc)
+- Task 4: Remove sleep visibility hack and prefixes in routing loggers (739e18e)
+- Task 5: ValueError raised on missing Reddit credentials in collect() (714cb98)
+**Verification:** pytest 79 passed | tsc clean | lint not-applicable
+**Decisions made:** Dev SQLite database needs to be recreated (or modified using ALTER TABLE) to add the `content_hash` column as SQLite database schemas are created dynamically via create_all.
+**Deferred/noticed:** Spotted that database schema creation relies purely on SQLAlchemy create_all and has no Alembic files.
 
 ### [0003] 2026-06-11 — fix/batch-2-nlp — Make the NLP pipeline real
 **Batch/scope:** Batch 2 — Make NLP real
