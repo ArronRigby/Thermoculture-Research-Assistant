@@ -736,31 +736,6 @@ async def sentiment_over_time(
     return SentimentOverTimeResponse(data=data, granularity=granularity)
 
 
-@analysis_router.get("/theme-frequency", response_model=ThemeFrequencyResponse)
-async def theme_frequency(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    stmt = (
-        select(
-            Theme.id,
-            Theme.name,
-            func.count(sample_themes.c.sample_id).label("cnt"),
-        )
-        .join(sample_themes, sample_themes.c.theme_id == Theme.id, isouter=True)
-        .group_by(Theme.id, Theme.name)
-        .order_by(text("cnt DESC"))
-    )
-    result = await db.execute(stmt)
-    rows = result.all()
-
-    data = [
-        ThemeFrequencyItem(theme_id=row.id, theme_name=row.name, count=row.cnt)
-        for row in rows
-    ]
-    return ThemeFrequencyResponse(data=data)
-
-
 @analysis_router.get("/geographic-distribution", response_model=GeographicDistributionResponse)
 async def geographic_distribution(
     db: AsyncSession = Depends(get_db),
@@ -995,7 +970,7 @@ async def theme_frequencies(
             Theme.name,
             func.count(sample_themes.c.sample_id).label("cnt"),
         )
-        .join(sample_themes, sample_themes.c.theme_id == Theme.id)
+        .join(sample_themes, sample_themes.c.theme_id == Theme.id, isouter=True)
         .group_by(Theme.id, Theme.name)
         .order_by(text("cnt DESC"))
     )

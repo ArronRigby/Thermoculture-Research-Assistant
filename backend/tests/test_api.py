@@ -169,7 +169,7 @@ class TestAnalysis:
 
     async def test_theme_frequency(self, client: AsyncClient, auth_headers):
         response = await client.get(
-            "/api/v1/analysis/theme-frequency", headers=auth_headers
+            "/api/v1/analysis/theme-frequencies", headers=auth_headers
         )
         assert response.status_code == 200
 
@@ -232,8 +232,8 @@ async def test_delete_source_requires_auth(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_analysis_theme_frequency_requires_auth(client: AsyncClient):
-    response = await client.get("/api/v1/analysis/theme-frequency")
+async def test_analysis_theme_frequencies_requires_auth(client: AsyncClient):
+    response = await client.get("/api/v1/analysis/theme-frequencies")
     assert response.status_code == 401
 
 
