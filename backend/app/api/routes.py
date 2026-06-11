@@ -1304,8 +1304,7 @@ async def _run_collection_in_background(
     Creates its own database session since the request session is closed
     after the response is sent.
     """
-    logger.info(f"DEBUG: Starting background collection for job {job_id}")
-    await asyncio.sleep(1)  # Ensure DB visibility
+    logger.info(f"Starting background collection for job {job_id}")
     async with async_session_factory() as db:
         try:
             # Get the job and update to RUNNING
@@ -1314,10 +1313,10 @@ async def _run_collection_in_background(
             )
             job = result.scalar_one_or_none()
             if job is None:
-                logger.error(f"DEBUG: Job {job_id} not found")
+                logger.error(f"Job {job_id} not found")
                 return
             
-            logger.info(f"DEBUG: Updating job {job_id} to RUNNING")
+            logger.debug(f"Updating job {job_id} to RUNNING")
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
             await db.commit()
@@ -1328,42 +1327,42 @@ async def _run_collection_in_background(
             # Get the source for the collector
             source = await db.get(Source, source_id)
             if source is None:
-                logger.error(f"DEBUG: Source {source_id} not found")
+                logger.error(f"Source {source_id} not found")
                 job.status = JobStatus.FAILED
                 job.error_message = "Source not found"
                 job.completed_at = datetime.now(timezone.utc)
                 await db.commit()
                 return
             
-            logger.info(f"DEBUG: Resolved source: {source.name} ({collector_type})")
+            logger.debug(f"Resolved source: {source.name} ({collector_type})")
             
             # Run the collector
             from collectors.scheduler import _get_collector
             collector = _get_collector(collector_type, source=source)
-            logger.info(f"DEBUG: Collector instance: {type(collector).__name__}")
+            logger.debug(f"Collector instance: {type(collector).__name__}")
             
-            logger.info(f"DEBUG: Starting collection...")
+            logger.debug(f"Starting collection...")
             items = await collector.collect()
-            logger.info(f"DEBUG: Collected {len(items)} items")
+            logger.info(f"Collected {len(items)} items")
             
             # Ingest the collected items
-            logger.info(f"DEBUG: Ingesting items...")
+            logger.debug(f"Ingesting items...")
             stats = await scheduler.pipeline.ingest_items(
                 items=items,
                 source_id=source_id,
                 db=db,
             )
-            logger.info(f"DEBUG: Ingestion stats: {stats}")
+            logger.debug(f"Ingestion stats: {stats}")
             
             # Update job as completed
             job.status = JobStatus.COMPLETED
             job.completed_at = datetime.now(timezone.utc)
             job.items_collected = stats.get("new", 0)
             await db.commit()
-            logger.info(f"DEBUG: Job {job_id} COMPLETED")
+            logger.info(f"Job {job_id} COMPLETED")
             
         except Exception as exc:
-            logger.exception(f"DEBUG: EXCEPTION in background task for job {job_id}")
+            logger.exception(f"Exception in background task for job {job_id}")
             
             # Update job as failed
             try:
@@ -1377,7 +1376,7 @@ async def _run_collection_in_background(
                     job.error_message = f"{type(exc).__name__}: {exc}"
                     await db.commit()
             except Exception as inner_exc:
-                logger.error(f"DEBUG: Failed to update job status on error: {inner_exc}")
+                logger.error(f"Failed to update job status on error: {inner_exc}")
 
 
 @jobs_router.get("/", response_model=List[CollectionJobResponse])
@@ -1397,7 +1396,7 @@ async def start_collection_job(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"DEBUG: start_collection_job called for source {payload.source_id}")
+    logger.debug(f"start_collection_job called for source {payload.source_id}")
     # Verify source
     source_result = await db.execute(select(Source).where(Source.id == payload.source_id))
     source = source_result.scalar_one_or_none()
@@ -1440,7 +1439,7 @@ async def start_collection_job(
     # Commit now so the background task can see the record
     await db.commit()
     
-    logger.info(f"DEBUG: Adding background task for job {job.id}...")
+    logger.debug(f"Adding background task for job {job.id}...")
     # Schedule the collection to run in the background
     background_tasks.add_task(
         _run_collection_in_background,
@@ -1448,7 +1447,7 @@ async def start_collection_job(
         source_id=str(payload.source_id),
         collector_type=collector_type,
     )
-    logger.info(f"DEBUG: Background task added.")
+    logger.debug(f"Background task added.")
     
     return job
 
