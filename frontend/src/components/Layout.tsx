@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import { useAuth } from '../hooks/useAuth';
 
 interface NavItem {
   to: string;
@@ -20,6 +21,9 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -115,14 +119,31 @@ export default function Layout() {
             Thermoculture Research Assistant
           </h1>
 
-          {/* Right side: user menu placeholder */}
-          <div className="flex items-center gap-3">
+          {/* Right side: user menu */}
+          <div className="flex items-center gap-3 relative">
             <button
+              onClick={() => setMenuOpen(!menuOpen)}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-medium text-primary-700 hover:bg-primary-200"
               aria-label="User menu"
             >
-              U
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
             </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-10 mt-1 w-48 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-50 border border-gray-200 dark:border-gray-700">
+                <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100 dark:border-gray-700 truncate">
+                  {user?.email}
+                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate('/login');
+                  }}
+                  className="flex w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-750 text-left transition-colors font-medium"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
