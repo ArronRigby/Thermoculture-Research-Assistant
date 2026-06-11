@@ -182,6 +182,9 @@ class DiscourseSample(Base):
         String(36), ForeignKey("locations.id", ondelete="SET NULL"), nullable=True
     )
     raw_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    content_hash: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True, unique=True, index=True
+    )
 
     source: Mapped["Source"] = relationship(back_populates="discourse_samples")
     location: Mapped[Optional["Location"]] = relationship(back_populates="discourse_samples")

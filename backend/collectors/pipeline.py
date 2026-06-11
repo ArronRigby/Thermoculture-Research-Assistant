@@ -85,7 +85,7 @@ class IngestPipeline:
             return stats
 
         # Pre-load existing hashes so we can check duplicates in bulk.
-        existing_hashes = await self._load_existing_hashes(db, source_id)
+        existing_hashes = await self._load_existing_hashes(db)
 
         # Pre-load location lookup from the database.
         location_cache = await self._load_location_cache(db)
@@ -126,6 +126,7 @@ class IngestPipeline:
                 collected_at=datetime.now(timezone.utc),
                 location_id=location_id,
                 raw_metadata=metadata,
+                content_hash=content_hash,
             )
             new_samples.append(sample)
 
@@ -190,17 +191,13 @@ class IngestPipeline:
     # ------------------------------------------------------------------
 
     @staticmethod
-    async def _load_existing_hashes(db: AsyncSession, source_id: UUID) -> set[str]:
+    async def _load_existing_hashes(db: AsyncSession) -> set[str]:
         """
-        Load all existing content_hash values for a given source.
-
-        We store the hash inside ``raw_metadata->>'content_hash'``.
-        For performance, this queries only the JSONB field.
+        Load all existing content_hash values from the dedicated column.
         """
         stmt = (
-            select(DiscourseSample.raw_metadata["content_hash"].as_string())
-            .where(DiscourseSample.source_id == source_id)
-            .where(DiscourseSample.raw_metadata["content_hash"].as_string().isnot(None))
+            select(DiscourseSample.content_hash)
+            .where(DiscourseSample.content_hash.isnot(None))
         )
         result = await db.execute(stmt)
         return {row[0] for row in result.all() if row[0]}
