@@ -527,23 +527,40 @@ async def get_sample_analysis(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    stmt = (
-        select(DiscourseSample)
-        .options(
-            selectinload(DiscourseSample.sentiments),
-            selectinload(DiscourseSample.classifications),
-            selectinload(DiscourseSample.themes),
-        )
-        .where(DiscourseSample.id == sample_id)
-    )
-    result = await db.execute(stmt)
+    # Verify sample exists
+    result = await db.execute(select(DiscourseSample).where(DiscourseSample.id == sample_id))
     sample = result.scalar_one_or_none()
     if sample is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sample not found")
+
+    # Explicitly query sentiments ordered by analyzed_at desc
+    sentiments_result = await db.execute(
+        select(SentimentAnalysis)
+        .where(SentimentAnalysis.sample_id == sample_id)
+        .order_by(SentimentAnalysis.analyzed_at.desc())
+    )
+    sentiments = sentiments_result.scalars().all()
+
+    # Explicitly query classifications ordered by classified_at desc
+    classifications_result = await db.execute(
+        select(DiscourseClassification)
+        .where(DiscourseClassification.sample_id == sample_id)
+        .order_by(DiscourseClassification.classified_at.desc())
+    )
+    classifications = classifications_result.scalars().all()
+
+    # Explicitly query themes linked to the sample
+    themes_result = await db.execute(
+        select(Theme)
+        .join(sample_themes)
+        .where(sample_themes.c.sample_id == sample_id)
+    )
+    themes = themes_result.scalars().all()
+
     return SampleAnalysisResponse(
-        sentiments=sample.sentiments,
-        classifications=sample.classifications,
-        themes=sample.themes,
+        sentiments=sentiments,
+        classifications=classifications,
+        themes=themes,
     )
 
 
