@@ -16,7 +16,7 @@ from typing import Any, Optional, Sequence
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import DiscourseSample, Location, Region
@@ -218,20 +218,16 @@ class IngestPipeline:
         batch_size: int = 100,
     ) -> None:
         """
-        Insert samples in batches, handling individual row conflicts
-        gracefully.
+        Insert samples in batches, handling individual row conflicts gracefully.
         """
         for start in range(0, len(samples), batch_size):
             batch = samples[start : start + batch_size]
-            for sample in batch:
-                db.add(sample)
-
             try:
-                await db.flush()
+                async with db.begin_nested():
+                    for sample in batch:
+                        db.add(sample)
+                    await db.flush()
             except IntegrityError:
-                await db.rollback()
-                # Fall back to one-by-one insertion so a single duplicate
-                # doesn't block the whole batch.
                 logger.warning(
                     "Batch insert hit IntegrityError -- falling back to "
                     "row-by-row insert for %d items",
@@ -239,30 +235,15 @@ class IngestPipeline:
                 )
                 for sample in batch:
                     try:
-                        db.add(sample)
-                        await db.flush()
+                        async with db.begin_nested():
+                            db.add(sample)
+                            await db.flush()
                     except IntegrityError:
-                        await db.rollback()
-                        logger.debug(
-                            "Skipped duplicate sample: %s", sample.title[:80]
-                        )
-                    except Exception:
-                        await db.rollback()
-                        logger.exception(
-                            "Unexpected error inserting sample: %s",
-                            sample.title[:80],
-                        )
-            except Exception:
-                await db.rollback()
-                logger.exception("Unexpected error during batch flush")
-
-        # Final commit is handled by the caller / session context manager,
-        # but we flush here to surface errors early.
-        try:
-            await db.flush()
-        except Exception:
-            await db.rollback()
-            logger.exception("Final flush failed")
+                        try:
+                            db.expunge(sample)
+                        except InvalidRequestError:
+                            pass
+                        logger.debug("Skipped duplicate sample: %s", sample.title[:80])
 
 
 # ---------------------------------------------------------------------------
