@@ -56,3 +56,48 @@ class TestIngestPipeline:
         hash3 = _content_hash("Different content")
         assert hash1 == hash2
         assert hash1 != hash3
+
+    @pytest.mark.asyncio
+    async def test_ingest_pipeline_triggers_analysis(self, db_session, test_source):
+        from app.models.models import SentimentAnalysis, DiscourseClassification, sample_themes
+        from sqlalchemy import select
+
+        pipeline = IngestPipeline()
+
+        item1 = CollectedItem(
+            title="Severe Flooding in London",
+            content="London experienced severe flooding yesterday as heavy rains overwhelmed drainage systems.",
+            source_url="https://example.com/london",
+            author="Reporter A",
+            location_hints=["London"],
+        )
+        item2 = CollectedItem(
+            title="Adapting to Heatwaves",
+            content="We installed solar panels and a heat pump to keep our home cool and reduce emissions.",
+            source_url="https://example.com/heatwave",
+            author="Reporter B",
+            location_hints=[],
+        )
+
+        # Ingest items
+        stats = await pipeline.ingest_items([item1, item2], test_source.id, db_session)
+
+        # Assert correct stats are returned
+        assert stats["new"] == 2
+        assert stats["analyzed"] == 2
+
+        # Verify SentimentAnalysis rows are created
+        sentiments = (await db_session.execute(select(SentimentAnalysis))).scalars().all()
+        assert len(sentiments) == 2
+        assert any(s.overall_sentiment < 0 for s in sentiments) # Flooding is negative
+        assert any(s.overall_sentiment > 0 for s in sentiments) # Solar panels/heat pump is positive
+
+        # Verify DiscourseClassification rows are created
+        classifications = (await db_session.execute(select(DiscourseClassification))).scalars().all()
+        assert len(classifications) == 2
+        types = [c.classification_type for c in classifications]
+        assert "PRACTICAL_ADAPTATION" in types
+
+        # Verify sample_themes links are created
+        themes_links = (await db_session.execute(select(sample_themes))).all()
+        assert len(themes_links) >= 1

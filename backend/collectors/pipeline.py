@@ -43,6 +43,10 @@ class IngestPipeline:
       corresponding ``Location`` row is linked.
     """
 
+    def __init__(self) -> None:
+        from nlp.analyzer import AnalysisEngine
+        self.analysis_engine = AnalysisEngine()
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -68,9 +72,14 @@ class IngestPipeline:
         Returns
         -------
         dict:
-            ``{"total": N, "new": N, "duplicates": N}``
+            ``{"total": N, "new": N, "duplicates": N, "analyzed": N}``
         """
-        stats: dict[str, int] = {"total": len(items), "new": 0, "duplicates": 0}
+        stats: dict[str, int] = {
+            "total": len(items),
+            "new": 0,
+            "duplicates": 0,
+            "analyzed": 0,
+        }
 
         if not items:
             return stats
@@ -125,11 +134,23 @@ class IngestPipeline:
             await self._batch_insert(db, new_samples)
             stats["new"] = len(new_samples)
 
+            for sample in new_samples:
+                try:
+                    await self.analysis_engine.analyze_sample(sample.id, sample.content, db)
+                    stats["analyzed"] += 1
+                except Exception:
+                    logger.exception(
+                        "Failed to analyze sample %s: %s",
+                        sample.id,
+                        sample.title[:80],
+                    )
+
         logger.info(
-            "Ingest complete: total=%d, new=%d, duplicates=%d",
+            "Ingest complete: total=%d, new=%d, duplicates=%d, analyzed=%d",
             stats["total"],
             stats["new"],
             stats["duplicates"],
+            stats["analyzed"],
         )
         return stats
 
