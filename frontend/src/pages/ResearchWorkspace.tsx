@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import clsx from 'clsx';
 import {
@@ -168,6 +169,10 @@ function NoteEditor({
       if (noteId) {
         queryClient.invalidateQueries({ queryKey: ['noteDetail', noteId] });
       }
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || 'Failed to save note';
+      toast.error(msg);
     },
   });
 
@@ -344,6 +349,10 @@ function QuoteLibrary() {
   const delMut = useMutation({
     mutationFn: deleteQuote,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['savedQuotes'] }),
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || 'Failed to delete quote';
+      toast.error(msg);
+    },
   });
 
   const allQuotes = quotesQ.data ?? [];
@@ -459,6 +468,10 @@ const ResearchWorkspace: React.FC = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['notes'] });
       setSelectedNoteId(data.id);
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || 'Failed to create note';
+      toast.error(msg);
     },
   });
 
