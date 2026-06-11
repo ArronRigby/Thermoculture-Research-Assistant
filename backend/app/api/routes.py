@@ -44,6 +44,7 @@ from app.models.models import (
 from app.schemas.schemas import (
     CitationCreate,
     CitationResponse,
+    CitationPreviewResponse,
     CollectionJobCreate,
     CollectionJobResponse,
     CollectionStatsResponse,
@@ -1195,15 +1196,30 @@ def _generate_citation_text(
         return citation
 
     if fmt == CitationFormat.MLA:
-        citation = f'{author}. "{title}."'
+        parts = []
+        if author:
+            parts.append(f"{author}.")
+        parts.append(f'"{title}."')
+        
+        mla_details = []
+        if sample.source:
+            mla_details.append(sample.source.name)
+        if sample.published_at:
+            day = sample.published_at.strftime("%d").lstrip("0")
+            month = sample.published_at.strftime("%B")
+            year = sample.published_at.strftime("%Y")
+            mla_details.append(f"{day} {month} {year}")
         if url:
-            citation += f" Web. {date_full}. <{url}>."
-        else:
-            citation += f" {date_full}."
-        return citation
+            mla_details.append(url)
+            
+        if mla_details:
+            parts.append(", ".join(mla_details) + ".")
+            
+        return " ".join(parts)
 
     if fmt == CitationFormat.CHICAGO:
-        citation = f'{author}. "{title}."'
+        source_str = f" {sample.source.name}." if sample.source else ""
+        citation = f'{author}. "{title}."{source_str}'
         if url:
             citation += f" Accessed {date_full}. {url}."
         else:
@@ -1213,6 +1229,26 @@ def _generate_citation_text(
     return f"{author}. {title}. {year}."
 
 
+@citations_router.get("/preview", response_model=CitationPreviewResponse)
+async def preview_citation(
+    sample_id: str,
+    format: CitationFormat,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(DiscourseSample)
+        .options(selectinload(DiscourseSample.source))
+        .where(DiscourseSample.id == sample_id)
+    )
+    sample = result.scalar_one_or_none()
+    if sample is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sample not found")
+
+    citation_text = _generate_citation_text(sample, format)
+    return CitationPreviewResponse(citation_text=citation_text)
+
+
 @citations_router.post("/", response_model=CitationResponse, status_code=status.HTTP_201_CREATED)
 async def generate_citation(
     payload: CitationCreate,
@@ -1220,7 +1256,9 @@ async def generate_citation(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(DiscourseSample).where(DiscourseSample.id == payload.sample_id)
+        select(DiscourseSample)
+        .options(selectinload(DiscourseSample.source))
+        .where(DiscourseSample.id == payload.sample_id)
     )
     sample = result.scalar_one_or_none()
     if sample is None:

@@ -9,6 +9,7 @@ import {
   fetchSampleAnalysis,
   createCitation,
   saveQuote,
+  fetchCitationPreview,
 } from '../api/endpoints';
 import SentimentGauge from '../components/SentimentGauge';
 import type { CitationFormat } from '../types';
@@ -41,29 +42,7 @@ function formatDate(d: string | null): string {
   });
 }
 
-function generateCitationText(
-  format: CitationFormat,
-  author: string | null,
-  title: string,
-  sourceName: string | null,
-  publishedAt: string | null,
-  url: string | null
-): string {
-  const yr = publishedAt ? new Date(publishedAt).getFullYear() : 'n.d.';
-  const auth = author ?? 'Unknown Author';
-  const src = sourceName ?? 'Unknown Source';
 
-  switch (format) {
-    case 'APA':
-      return `${auth} (${yr}). ${title}. ${src}. ${url ? `Retrieved from ${url}` : ''}`.trim();
-    case 'MLA':
-      return `${auth}. "${title}." ${src}, ${yr}. ${url ? `Web. ${url}` : ''}`.trim();
-    case 'CHICAGO':
-      return `${auth}. "${title}." ${src}. ${url ? `${url}` : ''} (accessed ${new Date().toLocaleDateString('en-GB')}).`.trim();
-    default:
-      return `${auth} (${yr}). ${title}. ${src}.`;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Skeleton
@@ -119,6 +98,12 @@ const SampleDetail: React.FC = () => {
     mutationFn: (text: string) => saveQuote(id!, text),
   });
 
+  const citationPreviewQ = useQuery({
+    queryKey: ['citationPreview', id, citationFormat],
+    queryFn: () => fetchCitationPreview(id!, citationFormat),
+    enabled: !!id && showCitation,
+  });
+
   const sample = sampleQ.data;
   const analysis = analysisQ.data;
 
@@ -143,14 +128,9 @@ const SampleDetail: React.FC = () => {
   const latestClassification = analysis?.classifications?.[0];
   const themes = analysis?.themes ?? sample.themes ?? [];
 
-  const citationText = generateCitationText(
-    citationFormat,
-    sample.author,
-    sample.title,
-    sample.source?.name ?? null,
-    sample.published_at,
-    sample.source_url
-  );
+  const citationText = citationPreviewQ.isLoading
+    ? 'Loading citation...'
+    : citationPreviewQ.data?.citation_text ?? '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

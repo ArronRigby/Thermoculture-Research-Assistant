@@ -330,6 +330,9 @@ class CitationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CitationPreviewResponse(BaseModel):
+    citation_text: str
+
 # ---------------------------------------------------------------------------
 # CollectionJob schemas
 # ---------------------------------------------------------------------------

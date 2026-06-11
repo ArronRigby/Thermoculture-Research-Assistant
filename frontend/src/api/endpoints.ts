@@ -353,6 +353,17 @@ export async function fetchCitationsForSample(
   return data;
 }
 
+export async function fetchCitationPreview(
+  sampleId: string,
+  format: string,
+): Promise<{ citation_text: string }> {
+  const { data } = await apiClient.get<{ citation_text: string }>(
+    '/citations/preview',
+    { params: { sample_id: sampleId, format } },
+  );
+  return data;
+}
+
 // ---------------------------------------------------------------------------
 // Analysis Endpoints
 // ---------------------------------------------------------------------------
