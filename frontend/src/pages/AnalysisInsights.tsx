@@ -191,23 +191,7 @@ function TemporalTab() {
     queryFn: () => fetchTimeline(granularity),
   });
 
-  const themeFreqQ = useQuery({
-    queryKey: ['themeFrequencies'],
-    queryFn: () => fetchThemeFrequencies(),
-  });
-
   const timelineData = timelineQ.data?.data ?? [];
-  const themeData = themeFreqQ.data?.data ?? [];
-
-  // Build stacked area data from timeline - simplified with top themes
-  const topThemeNames = themeData.slice(0, 5).map((t) => t.theme_name);
-  const areaData = timelineData.map((point) => {
-    const entry: Record<string, number | string> = { date: point.date, total: point.count };
-    topThemeNames.forEach((name, i) => {
-      entry[name] = Math.max(0, Math.round(point.count * (0.3 - i * 0.05) * (0.8 + Math.random() * 0.4)));
-    });
-    return entry;
-  });
 
   return (
     <div className="space-y-6">
@@ -258,38 +242,7 @@ function TemporalTab() {
         )}
       </div>
 
-      {/* Theme composition over time */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Theme Composition Over Time
-        </h3>
-        {timelineQ.isLoading || themeFreqQ.isLoading ? (
-          <SkeletonChart />
-        ) : areaData.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-8">No data available.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={areaData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-              <Legend />
-              {topThemeNames.map((name, i) => (
-                <Area
-                  key={name}
-                  type="monotone"
-                  dataKey={name}
-                  stackId="1"
-                  fill={THEME_COLORS[i % THEME_COLORS.length]}
-                  stroke={THEME_COLORS[i % THEME_COLORS.length]}
-                  fillOpacity={0.6}
-                />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+
     </div>
   );
 }
@@ -608,11 +561,6 @@ function DiscourseTypesTab() {
     queryFn: () => fetchDiscourseTypes(),
   });
 
-  const timelineQ = useQuery({
-    queryKey: ['timeline', 'weekly'],
-    queryFn: () => fetchTimeline('weekly'),
-  });
-
   // Fetch a few sample quotes for each type
   const samplesQ = useQuery({
     queryKey: ['samples', 'forTypes'],
@@ -620,19 +568,7 @@ function DiscourseTypesTab() {
   });
 
   const dtData = dtQ.data?.data ?? [];
-  const timelineData = timelineQ.data?.data ?? [];
   const samplesList = samplesQ.data?.items ?? [];
-
-  // Classification over time (simplified)
-  const classTypes = dtData.map((d) => d.classification_type);
-  const areaData = timelineData.map((point) => {
-    const entry: Record<string, number | string> = { date: point.date };
-    classTypes.forEach((ct, i) => {
-      const pct = dtData[i]?.percentage ?? 0;
-      entry[ct.replace(/_/g, ' ')] = Math.round(point.count * (pct / 100));
-    });
-    return entry;
-  });
 
   return (
     <div className="space-y-6">
@@ -698,7 +634,7 @@ function DiscourseTypesTab() {
       {/* Example quotes */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Example Quotes by Type
+          Recent Samples
         </h3>
         {samplesQ.isLoading ? (
           <SkeletonChart height={150} />
@@ -723,38 +659,7 @@ function DiscourseTypesTab() {
         )}
       </div>
 
-      {/* Classification over time */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Classification Over Time
-        </h3>
-        {dtQ.isLoading || timelineQ.isLoading ? (
-          <SkeletonChart />
-        ) : areaData.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-8">No time series data.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={areaData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-              <Legend />
-              {classTypes.map((ct, i) => (
-                <Area
-                  key={ct}
-                  type="monotone"
-                  dataKey={ct.replace(/_/g, ' ')}
-                  stackId="1"
-                  fill={DISCOURSE_COLORS[i % DISCOURSE_COLORS.length]}
-                  stroke={DISCOURSE_COLORS[i % DISCOURSE_COLORS.length]}
-                  fillOpacity={0.6}
-                />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+
     </div>
   );
 }
