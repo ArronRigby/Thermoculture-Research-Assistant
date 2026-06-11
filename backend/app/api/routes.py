@@ -1422,7 +1422,12 @@ async def start_collection_job(
         )
 
     # Determine the collector type based on source
-    collector_type = CollectionScheduler._resolve_collector_type(source)
+    collector_type = CollectionScheduler._resolve_collector_type(source, strict=True)
+    if collector_type is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No collector available for this source",
+        )
 
     job = CollectionJob(
         source_id=payload.source_id,

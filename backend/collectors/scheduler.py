@@ -263,7 +263,7 @@ class CollectionScheduler:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _resolve_collector_type(source: Source) -> str:
+    def _resolve_collector_type(source: Source, strict: bool = False) -> Optional[str]:
         """
         Determine the collector type string to use for a source.
 
@@ -285,10 +285,14 @@ class CollectionScheduler:
                 return "news_bbc"
             # Return generic NEWS if no match found, let the factory handle unknown types if needed
             # or raise an error if we want strict matching.
+            if strict:
+                return None
             return type_str
 
         if type_str == SourceType.REDDIT.value or type_str == "REDDIT":
             return "reddit"
 
+        if strict:
+            return None
         # Fallback: use the raw type string.
         return type_str
