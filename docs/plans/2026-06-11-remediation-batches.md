@@ -30,7 +30,22 @@ Workflow rules:
 
 ---
 
-## Batch 1 — Security: authentication coverage and credential hygiene
+## Between batches: merge protocol
+
+Batches are sequential and assume the previous batch is already on master (later
+batches touch the same files — routes.py, endpoints.ts, STATE.md). Do not run two
+batches in parallel.
+
+After a batch session finishes its STATE.md check-in:
+
+1. Push the branch and open a PR (push/gh must run from PowerShell — see CLAUDE.md
+   environment notes). Optionally run /code-review on the branch first.
+2. Merge to master and delete the branch. (Local merge without a PR is fine for solo
+   work — just say "merge this branch into master locally".)
+3. Only then start the next batch, in a fresh session, branched from master.
+
+The merge is what publishes STATE.md progress — until a batch branch is merged, the
+tracker on master is stale and the next session will not see the completed work.
 
 **Why first:** unauthenticated callers can currently delete research data and trigger scraping jobs.
 
