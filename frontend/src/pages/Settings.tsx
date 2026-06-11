@@ -250,14 +250,6 @@ function ExportSection() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => handleExport('notes', 'csv')}
-            disabled={loading === 'notes-csv'}
-            className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-          >
-            {loading === 'notes-csv' ? 'Exporting...' : 'Export CSV'}
-          </button>
-          <button
-            type="button"
             onClick={() => handleExport('notes', 'json')}
             disabled={loading === 'notes-json'}
             className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"

@@ -434,7 +434,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  full_name?: string;
+  full_name: string;
 }
 
 export interface AuthResponse {
@@ -455,4 +455,4 @@ export interface UserResponse {
 // Export types
 // ---------------------------------------------------------------------------
 
-export type ExportFormat = 'csv' | 'json' | 'bibtex';
+export type ExportFormat = 'csv' | 'json';
