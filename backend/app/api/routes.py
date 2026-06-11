@@ -425,12 +425,12 @@ async def list_samples(
         else:
             stmt = stmt.order_by(DiscourseSample.collected_at.desc())
     else:
-        # Default to collected_at
-        col = getattr(DiscourseSample, params.sort_by or "collected_at", DiscourseSample.collected_at)
-        # Verify it's actually a column to avoid getattr issues
-        if not hasattr(DiscourseSample, str(params.sort_by)):
-            col = DiscourseSample.collected_at
-            
+        sort_map = {
+            "collected_at": DiscourseSample.collected_at,
+            "published_at": DiscourseSample.published_at,
+            "title": DiscourseSample.title,
+        }
+        col = sort_map.get(params.sort_by, DiscourseSample.collected_at)
         if params.sort_order == "asc":
             stmt = stmt.order_by(col.asc())
         else:
