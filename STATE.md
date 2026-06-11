@@ -52,8 +52,8 @@ passed and a check-in entry exists.
       whitelist, single theme-frequency endpoint, citation preview endpoint as single
       source of truth (MLA 9), ordered analysis results, exact path matching in
       endpoints.ts, consistent count queries.
-- [ ] **Batch 5 — Frontend broken features:** build minimal /quotes backend + error
-      toasts, fix /workspace→/research links, delete fabricated charts
+- [x] **Batch 5 — Frontend: broken features and dishonest charts:** build minimal /quotes
+      backend + error toasts, fix /workspace→/research links, delete fabricated charts
       (Math.random data!), fix "+ New" note 422, honest export buttons, show job
       error_message, "collection runs" label, logout button, type/contract fixes.
 - [ ] **Batch 6 — Dead code & hygiene:** delete dead frontend files (useFilters,
@@ -75,7 +75,7 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 | # | Decision | Default | Status |
 |---|----------|---------|--------|
 | D1 | Celery vs BackgroundTasks | Delete Celery; keep BackgroundTasks | completed (B2) |
-| D2 | Quote Library | Build minimal backend (UI + README already promise it) | pending (B5) |
+| D2 | Quote Library | Build minimal backend (UI + README already promise it) | completed (B5) |
 | D3 | wordcloud_data.py | Delete (no endpoint uses it) | pending (B6) |
 | D4 | docker-compose | Trim to backend+frontend; SQLite stays | pending (B7) |
 | D5 | Alembic | Delete scaffolding; create_all is the mechanism | pending (B7) |
@@ -95,6 +95,21 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 ---
 
 ## Check-in Log
+
+### [0006] 2026-06-12 — fix/batch-5-frontend — Frontend: broken features and dishonest charts
+**Batch/scope:** Batch 5 — Frontend: broken features and dishonest charts
+**Work completed:**
+- Task 1: Build missing quote library backend (model, schemas, router) and add frontend error/success toasts (85d464e)
+- Task 2: Change broken /workspace links to /research in SampleDetail (decbe05)
+- Task 3: Delete fabricated composition and classification over time charts and clean up unused imports (0dfba05, 20cee2b)
+- Task 4: Allow empty content for new notes in backend schemas and add frontend error toasts (3c2ee5e)
+- Task 5: Remove notes CSV button from Settings page and remove bibtex format from ExportFormat type (74ea426)
+- Task 6: Surface collection job error messages on failed badges and update ProvenanceBar label to collection runs (3b73b62)
+- Task 7: Replace static user button placeholder with user email and profile logout dropdown menu (2d99c7f)
+- Task 8: Make RegisterRequest.full_name required and simplify 401 response handling to a hard redirect (dffe793)
+**Verification:** pytest 89 passed | tsc clean | lint not-applicable
+**Decisions made:** D2 (Build minimal quote library backend) completed.
+**Deferred/noticed:** None.
 
 ### [0005] 2026-06-11 — fix/batch-4-api — API correctness
 **Batch/scope:** Batch 4 — API correctness
