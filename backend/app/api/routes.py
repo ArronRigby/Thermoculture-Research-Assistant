@@ -168,13 +168,13 @@ async def dashboard_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    total_samples = (await db.execute(func.count(DiscourseSample.id))).scalar() or 0
+    total_samples = (await db.execute(select(func.count(DiscourseSample.id)))).scalar() or 0
     active_sources = (
         await db.execute(
             select(func.count(Source.id)).where(Source.is_active.is_(True))
         )
     ).scalar() or 0
-    themes_identified = (await db.execute(func.count(Theme.id))).scalar() or 0
+    themes_identified = (await db.execute(select(func.count(Theme.id)))).scalar() or 0
     running_jobs = (
         await db.execute(
             select(func.count(CollectionJob.id)).where(
