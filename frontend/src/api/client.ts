@@ -34,9 +34,6 @@ apiClient.interceptors.response.use(
         window.location.pathname !== '/login' &&
         window.location.pathname !== '/register'
       ) {
-        // Dispatch custom event so AuthProvider can react
-        window.dispatchEvent(new Event('auth-unauthorized'));
-
         const returnTo = encodeURIComponent(window.location.pathname);
         window.location.href = `/login?returnTo=${returnTo}`;
       }

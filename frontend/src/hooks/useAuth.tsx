@@ -99,15 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   }, []);
 
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      console.log('[Auth] Received unauthorized event, logging out...');
-      logout();
-    };
-    window.addEventListener('auth-unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth-unauthorized', handleUnauthorized);
-  }, [logout]);
-
   const clearError = useCallback(() => setError(null), []);
 
   console.log('[Auth] Render state:', { userEmail: user?.email, isAuthenticated: !!user, isLoading });
