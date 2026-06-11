@@ -1,0 +1,118 @@
+# STATE.md — Living Project State
+
+Read this at the start of every session. Update it at every check-in (end of a batch,
+end of a work session, or before raising a PR — whichever comes first).
+
+## How to check in
+
+Append an entry to the **Check-in Log** (newest first) using this format, and tick any
+completed batches in the tracker:
+
+```markdown
+### [NNNN] YYYY-MM-DD — <branch> — <short title>
+**Batch/scope:** <batch number or "ad-hoc">
+**Work completed:**
+- <task>: <what changed> (<commit hash>)
+**Verification:** pytest <result> | tsc <result> | lint <result/not-applicable>
+**Decisions made:** <any defaults exercised or deviations from the plan, with why>
+**Deferred/noticed:** <dead code or issues spotted but NOT touched (per surgical-changes rule)>
+```
+
+Rules: never delete old entries; never claim verification you didn't run; if a batch is
+partially done, say exactly which tasks remain.
+
+---
+
+## Project snapshot
+
+- **What it is:** FastAPI + SQLite backend, React 18/TS/Vite frontend. Collects UK climate
+  discourse (BBC/Guardian scraping, Reddit via asyncpraw), NLP analysis (VADER sentiment,
+  keyword classifier, TF-IDF themes), research notes/citations/export.
+- **Dev path:** `run_app.bat` → uvicorn :8000 + vite :5173. Docker compose not currently viable (see Batch 7).
+- **Verified baseline (2026-06-11):** backend `pytest` = **64 passed**;
+  frontend `tsc --noEmit` = **clean**; `npm run lint` = **broken** (no ESLint config).
+- **Guidelines:** Karpathy coding guidelines + verification commands live in `CLAUDE.md`.
+- **Full findings:** 2026-06-11 review; remediation prompts in
+  `docs/plans/2026-06-11-remediation-batches.md` (includes an issue→batch coverage map).
+
+## Remediation batch tracker
+
+Work in order. One branch + PR per batch. Tick only when the batch's acceptance criteria
+passed and a check-in entry exists.
+
+- [ ] **Batch 1 — Security:** auth on all non-public endpoints (incl. DELETE /samples,
+      POST /jobs/start), 401 tests first, remove token/email logging, fail-fast SECRET_KEY.
+- [ ] **Batch 2 — Make NLP real:** delete dead Celery layer (+compose services, dep),
+      trigger `AnalysisEngine` from `IngestPipeline.ingest_items`, no-signal text returns
+      no classification, remove discarded GeoExtractor wiring.
+- [ ] **Batch 3 — Collection correctness:** 422 before creating jobs with no collector,
+      `content_hash` column + global unique dedup, sane `_batch_insert`, remove
+      `asyncio.sleep(1)` hack + DEBUG log prefixes, Reddit creds fail fast.
+- [ ] **Batch 4 — API correctness:** sentiment sort without row duplication, sort_by
+      whitelist, single theme-frequency endpoint, citation preview endpoint as single
+      source of truth (MLA 9), ordered analysis results, exact path matching in
+      endpoints.ts, consistent count queries.
+- [ ] **Batch 5 — Frontend broken features:** build minimal /quotes backend + error
+      toasts, fix /workspace→/research links, delete fabricated charts
+      (Math.random data!), fix "+ New" note 422, honest export buttons, show job
+      error_message, "collection runs" label, logout button, type/contract fixes.
+- [ ] **Batch 6 — Dead code & hygiene:** delete dead frontend files (useFilters,
+      FilterBar, Pagination, SampleCard), dead backend modules (_LogAdapter,
+      wordcloud_data, ImportError guards), git-rm 14 debug scripts + test.db +
+      cleanup_leaked_data.py, remove nul/log junk, trim deps (praw/spacy/pandas/passlib,
+      ADD bcrypt explicitly), one gazetteer, one stop-word list, strip console.log.
+- [ ] **Batch 7 — Tooling & docs honesty:** ESLint config (lint must exit 0),
+      negative-path + user-isolation tests, truthful README, trim docker-compose to
+      what works, delete unused Alembic scaffolding.
+- [ ] **Batch 8 — Hardening (optional):** naive-UTC datetime convention, FK indexes,
+      login throttling decision, remove decorative Settings keywords, dark-mode
+      decision, methodology notes (sentiment topic-bias, theme threshold).
+
+## Decisions register
+
+Defaults baked into the plan — flag at check-in if a session deviates:
+
+| # | Decision | Default | Status |
+|---|----------|---------|--------|
+| D1 | Celery vs BackgroundTasks | Delete Celery; keep BackgroundTasks | pending (B2) |
+| D2 | Quote Library | Build minimal backend (UI + README already promise it) | pending (B5) |
+| D3 | wordcloud_data.py | Delete (no endpoint uses it) | pending (B6) |
+| D4 | docker-compose | Trim to backend+frontend; SQLite stays | pending (B7) |
+| D5 | Alembic | Delete scaffolding; create_all is the mechanism | pending (B7) |
+| D6 | Token in localStorage | Accepted risk (local research tool) | accepted 2026-06-11 |
+| D7 | Login rate limiting | Skip unless app leaves localhost | pending (B8) |
+
+## Known issues (accepted / not yet scheduled)
+
+- Sentiment lexicon conflates topic with sentiment (news *about* flooding scores
+  negative) — documented as methodology limitation in Batch 8; no code fix scheduled.
+- Theme match threshold 0.01 over-tags samples — review against seed data in Batch 8.
+- BBC collector body extraction can ingest page junk when no `<article>` tag; search
+  requests are not rate-limited; long jobs run in-process (accepted after D1).
+- `backend/thermoculture.db` and `test.db` exist locally; only `backend/test.db` is
+  git-tracked (removed in Batch 6).
+
+---
+
+## Check-in Log
+
+### [0001] 2026-06-11 — master — Full codebase review + remediation scaffolding
+**Batch/scope:** ad-hoc (pre-batch)
+**Work completed:**
+- Full read-through review of backend (app, collectors, nlp, seeds, tests, configs)
+  and frontend (all pages, components, hooks, api, configs). Findings summarised in
+  `docs/plans/2026-06-11-remediation-batches.md` (issue→batch coverage map at the end).
+- Verified baseline: backend pytest 64 passed; frontend `tsc --noEmit` clean;
+  `npm run lint` fails (no ESLint config exists).
+- Created `docs/plans/2026-06-11-remediation-batches.md` (8 batches of paste-ready prompts).
+- Rewrote `CLAUDE.md`: preserved VBW rules/skills/env notes; added Karpathy coding
+  guidelines (verbatim from multica-ai/andrej-karpathy-skills), verification commands,
+  "Project Reality" facts, and tightened conventions (auth-everywhere, no console.log,
+  exact API paths, onError on mutations).
+- Created this `STATE.md` with batch tracker, decisions register, and check-in format.
+**Verification:** pytest 64 passed | tsc clean | lint broken (expected until Batch 7)
+**Decisions made:** D1–D7 defaults recorded above.
+**Deferred/noticed:** Nothing fixed in this session by design — review only. Notable
+top-5 risks: NLP never runs on collected data; Celery layer dead; missing auth on
+mutating endpoints; fabricated chart data in AnalysisInsights; Quote Library calls a
+non-existent API.
