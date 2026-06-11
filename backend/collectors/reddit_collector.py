@@ -86,6 +86,9 @@ class RedditCollector(BaseCollector):
         max_comments_per_post:
             Maximum top-level comments to collect per post.
         """
+        if not self._client_id or not self._client_secret:
+            raise ValueError("Reddit API credentials (REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET) are not set.")
+
         search_terms = keywords or self.CLIMATE_KEYWORDS
         collected: list[CollectedItem] = []
         seen_ids: set[str] = set()
