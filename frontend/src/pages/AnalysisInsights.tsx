@@ -10,13 +10,10 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  AreaChart,
-  Area,
   PieChart,
   Pie,
   Cell,
   CartesianGrid,
-  Legend,
 } from 'recharts';
 import {
   fetchGeographicDistribution,
