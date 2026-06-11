@@ -40,7 +40,7 @@ partially done, say exactly which tasks remain.
 Work in order. One branch + PR per batch. Tick only when the batch's acceptance criteria
 passed and a check-in entry exists.
 
-- [ ] **Batch 1 — Security:** auth on all non-public endpoints (incl. DELETE /samples,
+- [x] **Batch 1 — Security:** auth on all non-public endpoints (incl. DELETE /samples,
       POST /jobs/start), 401 tests first, remove token/email logging, fail-fast SECRET_KEY.
 - [ ] **Batch 2 — Make NLP real:** delete dead Celery layer (+compose services, dep),
       trigger `AnalysisEngine` from `IngestPipeline.ingest_items`, no-signal text returns
@@ -95,6 +95,16 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 ---
 
 ## Check-in Log
+
+### [0002] 2026-06-11 — fix/batch-1-auth — Security: auth coverage and logging cleanup
+**Batch/scope:** Batch 1 — Security
+**Work completed:**
+- Task 1: Enforce auth on all non-public endpoints in routes.py (d1c381a)
+- Task 2: Remove per-request credential logging from security.py and client.ts (8a8b49e)
+- Task 3: Fail fast on default SECRET_KEY in config.py under production environment (dabfd5d)
+**Verification:** pytest 78 passed | tsc clean | lint not-applicable
+**Decisions made:** None.
+**Deferred/noticed:** Spotted dead Celery worker setup (to be deleted in Batch 2).
 
 ### [0001] 2026-06-11 — master — Full codebase review + remediation scaffolding
 **Batch/scope:** ad-hoc (pre-batch)
