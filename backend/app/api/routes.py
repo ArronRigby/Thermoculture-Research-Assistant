@@ -401,11 +401,17 @@ async def list_samples(
     # Sorting
     if params.sort_by == "sentiment":
         # Sort by sentiment analysis score
-        stmt = stmt.outerjoin(SentimentAnalysis)
+        subq = (
+            select(SentimentAnalysis.overall_sentiment)
+            .where(SentimentAnalysis.sample_id == DiscourseSample.id)
+            .order_by(SentimentAnalysis.analyzed_at.desc())
+            .limit(1)
+            .scalar_subquery()
+        )
         if params.sort_order == "asc":
-            stmt = stmt.order_by(SentimentAnalysis.overall_sentiment.asc().nulls_last())
+            stmt = stmt.order_by(subq.asc().nulls_last())
         else:
-            stmt = stmt.order_by(SentimentAnalysis.overall_sentiment.desc().nulls_last())
+            stmt = stmt.order_by(subq.desc().nulls_last())
     elif params.sort_by == "title":
         if params.sort_order == "asc":
             stmt = stmt.order_by(DiscourseSample.title.asc())
