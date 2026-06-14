@@ -56,7 +56,7 @@ passed and a check-in entry exists.
       backend + error toasts, fix /workspace→/research links, delete fabricated charts
       (Math.random data!), fix "+ New" note 422, honest export buttons, show job
       error_message, "collection runs" label, logout button, type/contract fixes.
-- [ ] **Batch 6 — Dead code & hygiene:** delete dead frontend files (useFilters,
+- [x] **Batch 6 — Dead code & hygiene:** delete dead frontend files (useFilters,
       FilterBar, Pagination, SampleCard), dead backend modules (_LogAdapter,
       wordcloud_data, ImportError guards), git-rm 14 debug scripts + test.db +
       cleanup_leaked_data.py, remove nul/log junk, trim deps (praw/spacy/pandas/passlib,
@@ -76,7 +76,7 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 |---|----------|---------|--------|
 | D1 | Celery vs BackgroundTasks | Delete Celery; keep BackgroundTasks | completed (B2) |
 | D2 | Quote Library | Build minimal backend (UI + README already promise it) | completed (B5) |
-| D3 | wordcloud_data.py | Delete (no endpoint uses it) | pending (B6) |
+| D3 | wordcloud_data.py | Delete (no endpoint uses it) | completed (B6) |
 | D4 | docker-compose | Trim to backend+frontend; SQLite stays | pending (B7) |
 | D5 | Alembic | Delete scaffolding; create_all is the mechanism | pending (B7) |
 | D6 | Token in localStorage | Accepted risk (local research tool) | accepted 2026-06-11 |
@@ -95,6 +95,19 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 ---
 
 ## Check-in Log
+
+### [0007] 2026-06-14 — fix/batch-6-hygiene — Dead code and repo hygiene
+**Batch/scope:** Batch 6 — Dead code & hygiene
+**Work completed:**
+- Task 1: Delete dead frontend hook and components (`useFilters`, `FilterBar`, `Pagination`, `SampleCard`) and drop `date-fns` (8446b2e)
+- Task 2: Delete dead backend modules `wordcloud_data.py` and `geographic.py`, remove `_build_theme_vectors` and unused sklearn/url imports, remove models `ImportError` guards, and simplify `scheduler.py` logger (0848563)
+- Task 3: git-rm 16 debug scripts, test databases, and delete untracked `nul`, `log`, and `db` debris (0781330)
+- Task 4: Trim unused dependencies from `requirements.txt` (`praw`, `spacy`, `pandas`, `passlib`) and Dockerfile while adding `bcrypt` explicitly (5f2b35d)
+- Task 5: Consolidate gazetteer and stop-word list to single source (handled by Task 2 deletions) (0848563)
+- Task 6: Strip remaining debug `console.log` statements in frontend `useAuth.tsx` and `ProtectedRoute.tsx` (1889557)
+**Verification:** pytest 83 passed | tsc clean | lint not-applicable
+**Decisions made:** D3 (delete wordcloud_data.py) completed.
+**Deferred/noticed:** None.
 
 ### [0006] 2026-06-12 — fix/batch-5-frontend — Frontend: broken features and dishonest charts
 **Batch/scope:** Batch 5 — Frontend: broken features and dishonest charts
