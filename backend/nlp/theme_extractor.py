@@ -13,7 +13,7 @@ from typing import List, Dict, Optional
 
 import numpy as np
 from sklearn.decomposition import LatentDirichletAllocation
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -114,17 +114,6 @@ PREDEFINED_THEMES: Dict[str, List[str]] = {
         "leak", "leaks", "pipe", "infrastructure", "treatment",
     ],
 }
-
-
-def _build_theme_vectors(vectorizer: TfidfVectorizer) -> np.ndarray:
-    """
-    Build TF-IDF vectors for each predefined theme using its keyword list
-    as a pseudo-document.
-    """
-    theme_docs = [
-        " ".join(keywords) for keywords in PREDEFINED_THEMES.values()
-    ]
-    return vectorizer.transform(theme_docs)
 
 
 class ThemeExtractor:

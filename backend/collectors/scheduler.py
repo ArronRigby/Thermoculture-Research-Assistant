@@ -13,58 +13,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-try:
-    from loguru import logger  # type: ignore[import-untyped]
-
-    _USE_LOGURU = True
-except ImportError:
-    import logging as _logging
-
-    _USE_LOGURU = False
-    _stdlib_logger = _logging.getLogger("scheduler")
-
-
-class _LogAdapter:
-    """
-    Thin adapter so that the rest of this module can use loguru-style
-    ``logger.info("msg {key}", key=val)`` calls regardless of whether
-    loguru is installed.  When loguru is present the calls go straight
-    through; otherwise they are converted to stdlib %-style formatting.
-    """
-
-    def _format(self, msg: str, kwargs: dict) -> str:  # noqa: ANN001
-        try:
-            return msg.format(**kwargs)
-        except (KeyError, IndexError):
-            return msg
-
-    def info(self, msg: str, **kw: object) -> None:
-        if _USE_LOGURU:
-            logger.info(msg, **kw)  # type: ignore[union-attr]
-        else:
-            _stdlib_logger.info(self._format(msg, kw))
-
-    def warning(self, msg: str, **kw: object) -> None:
-        if _USE_LOGURU:
-            logger.warning(msg, **kw)  # type: ignore[union-attr]
-        else:
-            _stdlib_logger.warning(self._format(msg, kw))
-
-    def error(self, msg: str, **kw: object) -> None:
-        if _USE_LOGURU:
-            logger.error(msg, **kw)  # type: ignore[union-attr]
-        else:
-            _stdlib_logger.error(self._format(msg, kw))
-
-    def debug(self, msg: str, **kw: object) -> None:
-        if _USE_LOGURU:
-            logger.debug(msg, **kw)  # type: ignore[union-attr]
-        else:
-            _stdlib_logger.debug(self._format(msg, kw))
-
-
-log = _LogAdapter()
+from loguru import logger
 
 from app.models.models import CollectionJob, JobStatus, Source, SourceType
 from collectors.base import BaseCollector
@@ -153,7 +102,7 @@ class CollectionScheduler:
         db.add(job)
         await db.flush()
 
-        log.info(
+        logger.info(
             "Created collection job {job_id} for source {source_name} ({collector_type})",
             job_id=str(job.id),
             source_name=source.name,
@@ -168,7 +117,7 @@ class CollectionScheduler:
         try:
             # -- Step 3: run the collector ------------------------------
             collector = _get_collector(collector_type, source=source)
-            log.info(
+            logger.info(
                 "Running collector {cls} for job {job_id}",
                 cls=type(collector).__name__,
                 job_id=str(job.id),
@@ -187,7 +136,7 @@ class CollectionScheduler:
             job.completed_at = datetime.now(timezone.utc)
             job.items_collected = stats.get("new", 0)
 
-            log.info(
+            logger.info(
                 "Job {job_id} completed: {stats}",
                 job_id=str(job.id),
                 stats=stats,
@@ -199,7 +148,7 @@ class CollectionScheduler:
             job.completed_at = datetime.now(timezone.utc)
             job.error_message = f"{type(exc).__name__}: {exc}"
 
-            log.error(
+            logger.error(
                 "Job {job_id} failed: {error}",
                 job_id=str(job.id),
                 error=str(exc),
@@ -226,10 +175,10 @@ class CollectionScheduler:
         sources = result.scalars().all()
 
         if not sources:
-            log.warning("No active sources found -- nothing to schedule")
+            logger.warning("No active sources found -- nothing to schedule")
             return []
 
-        log.info(
+        logger.info(
             "Scheduling collection for {n} active source(s)", n=len(sources)
         )
 
@@ -245,13 +194,13 @@ class CollectionScheduler:
                 )
                 jobs.append(job)
             except Exception as exc:
-                log.error(
+                logger.error(
                     "Failed to run job for source {source_name}: {error}",
                     source_name=source.name,
                     error=str(exc),
                 )
 
-        log.info(
+        logger.info(
             "Scheduling round complete: {completed}/{total} jobs succeeded",
             completed=sum(1 for j in jobs if j.status == JobStatus.COMPLETED),
             total=len(jobs),

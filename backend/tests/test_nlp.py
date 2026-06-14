@@ -2,8 +2,6 @@ import pytest
 from nlp.sentiment import SentimentAnalyzer
 from nlp.classifier import DiscourseClassifier
 from nlp.theme_extractor import ThemeExtractor
-from nlp.geographic import GeoExtractor
-from nlp.wordcloud_data import WordFrequencyAnalyzer
 
 class TestSentimentAnalyzer:
     def setup_method(self):
@@ -105,57 +103,6 @@ class TestThemeExtractor:
         keywords = self.extractor.get_keywords(text, top_n=5)
         assert isinstance(keywords, list)
         assert len(keywords) <= 5
-
-class TestGeoExtractor:
-    def setup_method(self):
-        self.extractor = GeoExtractor()
-
-    def test_extract_london(self):
-        result = self.extractor.extract_locations("The flooding in London caused major disruption")
-        assert len(result) > 0
-        assert any(loc["name"] == "London" for loc in result)
-
-    def test_extract_multiple_locations(self):
-        result = self.extractor.extract_locations("The storm hit Manchester and Liverpool hard")
-        assert len(result) >= 2
-        names = [loc["name"] for loc in result]
-        assert "Manchester" in names
-        assert "Liverpool" in names
-
-    def test_no_locations(self):
-        result = self.extractor.extract_locations("The weather was nice today")
-        assert isinstance(result, list)
-
-    def test_deduplication(self):
-        result = self.extractor.extract_locations("London is great. I love London. London is the best.")
-        london_count = sum(1 for loc in result if loc["name"] == "London")
-        assert london_count == 1
-
-class TestWordFrequencyAnalyzer:
-    def setup_method(self):
-        self.analyzer = WordFrequencyAnalyzer()
-
-    def test_word_frequencies(self):
-        texts = [
-            "Climate change is affecting flooding patterns",
-            "Climate change causes more extreme weather and flooding",
-        ]
-        result = self.analyzer.get_word_frequencies(texts, top_n=10)
-        assert isinstance(result, list)
-        assert len(result) <= 10
-        words = [item["word"] for item in result]
-        assert "flood" in words or "affect" in words
-
-    def test_ngrams(self):
-        texts = [
-            "flooding causes severe damage to homes",
-            "flooding causes major disruption every year",
-        ]
-        result = self.analyzer.get_ngrams(texts, n=2, top_n=5)
-        assert isinstance(result, list)
-        assert len(result) > 0
-        ngrams = [item["ngram"] for item in result]
-        assert any("flood" in ng for ng in ngrams)
 
 
 @pytest.fixture

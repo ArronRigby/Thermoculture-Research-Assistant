@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from typing import Optional
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup, Tag

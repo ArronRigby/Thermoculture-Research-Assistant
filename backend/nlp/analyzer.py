@@ -20,6 +20,8 @@ from nlp.sentiment import SentimentAnalyzer
 from nlp.theme_extractor import ThemeExtractor
 from nlp.classifier import DiscourseClassifier
 
+from app.models.models import SentimentAnalysis, DiscourseClassification
+
 logger = logging.getLogger(__name__)
 
 
@@ -211,12 +213,6 @@ class AnalysisEngine:
         result: Dict[str, Any],
     ) -> None:
         """Persist a SentimentAnalysis record."""
-        try:
-            from app.models.models import SentimentAnalysis
-        except ImportError:
-            logger.debug("SentimentAnalysis model not available; skipping persist.")
-            return
-
         record = SentimentAnalysis(
             id=str(uuid4()),
             sample_id=str(sample_id),
@@ -235,12 +231,6 @@ class AnalysisEngine:
     ) -> None:
         """Persist a DiscourseClassification record."""
         if result.get("classification_type") is None:
-            return
-
-        try:
-            from app.models.models import DiscourseClassification
-        except ImportError:
-            logger.debug("DiscourseClassification model not available; skipping persist.")
             return
 
         record = DiscourseClassification(
