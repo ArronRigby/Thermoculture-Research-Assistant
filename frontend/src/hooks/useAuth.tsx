@@ -24,15 +24,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUser = useCallback(async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
-      console.log('[Auth] No token found in localStorage');
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('[Auth] Token found, fetching current user...');
       const userData = await getCurrentUser();
-      console.log('[Auth] User fetched successfully:', userData.email);
       setUser(userData);
     } catch (err) {
       console.error('[Auth] Failed to fetch user:', err);
@@ -54,10 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
-      console.log('[Auth] Attempting login for:', credentials.username);
       const response = await apiLogin(credentials);
       localStorage.setItem(TOKEN_KEY, response.access_token);
-      console.log('[Auth] Login successful, token stored');
 
       const userData = await getCurrentUser();
       setUser(userData);
@@ -93,15 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(() => {
-    console.log('[Auth] Logging out');
     localStorage.removeItem(TOKEN_KEY);
     setUser(null);
     setError(null);
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
-
-  console.log('[Auth] Render state:', { userEmail: user?.email, isAuthenticated: !!user, isLoading });
 
   return (
     <AuthContext.Provider
