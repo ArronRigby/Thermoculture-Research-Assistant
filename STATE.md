@@ -61,7 +61,7 @@ passed and a check-in entry exists.
       wordcloud_data, ImportError guards), git-rm 14 debug scripts + test.db +
       cleanup_leaked_data.py, remove nul/log junk, trim deps (praw/spacy/pandas/passlib,
       ADD bcrypt explicitly), one gazetteer, one stop-word list, strip console.log.
-- [ ] **Batch 7 — Tooling & docs honesty:** ESLint config (lint must exit 0),
+- [x] **Batch 7 — Tooling & docs honesty:** ESLint config (lint must exit 0),
       negative-path + user-isolation tests, truthful README, trim docker-compose to
       what works, delete unused Alembic scaffolding.
 - [ ] **Batch 8 — Hardening (optional):** naive-UTC datetime convention, FK indexes,
@@ -77,8 +77,8 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 | D1 | Celery vs BackgroundTasks | Delete Celery; keep BackgroundTasks | completed (B2) |
 | D2 | Quote Library | Build minimal backend (UI + README already promise it) | completed (B5) |
 | D3 | wordcloud_data.py | Delete (no endpoint uses it) | completed (B6) |
-| D4 | docker-compose | Trim to backend+frontend; SQLite stays | pending (B7) |
-| D5 | Alembic | Delete scaffolding; create_all is the mechanism | pending (B7) |
+| D4 | docker-compose | Trim to backend+frontend; SQLite stays | completed (B7) |
+| D5 | Alembic | Delete scaffolding; create_all is the mechanism | completed (B7) |
 | D6 | Token in localStorage | Accepted risk (local research tool) | accepted 2026-06-11 |
 | D7 | Login rate limiting | Skip unless app leaves localhost | pending (B8) |
 
@@ -95,6 +95,18 @@ Defaults baked into the plan — flag at check-in if a session deviates:
 ---
 
 ## Check-in Log
+
+### [0008] 2026-06-14 — fix/batch-7-tooling — Tooling, tests, and docs honesty
+**Batch/scope:** Batch 7 — Tooling, tests, and docs honesty
+**Work completed:**
+- Task 1: Upgrade to ESLint 9 + typescript-eslint + eslint-plugin-react-hooks@5.x, create flat-config `eslint.config.js` and fix all console and type violations (2f54919)
+- Task 2: Add 6 negative-path and user-isolation tests in `backend/tests/test_batch7.py` covering combined filters, double job start, 404s with auth, pagination bounds, filter exports, and notes user-isolation (4d667f8)
+- Task 3: Rewrite README.md to accurately list SQLite, Python 3.10.x, trimmed stack, correct API routes, and local quickstart; update seeds to print test user credentials (138f0bb)
+- Task 4: Trim docker-compose.yml to backend+frontend only, and update backend healthcheck using python-urllib command (a7dd499)
+- Task 5: Delete unused Alembic configuration `alembic.ini` and `migrations` folder (68222ef)
+**Verification:** pytest 89 passed | tsc clean | lint clean
+**Decisions made:** D4 (trim docker-compose to frontend+backend) completed. D5 (delete Alembic configuration) completed.
+**Deferred/noticed:** Docker Desktop daemon startup timed out on host machine during verification, but compose syntax verified cleanly with `docker compose config`.
 
 ### [0007] 2026-06-14 — fix/batch-6-hygiene — Dead code and repo hygiene
 **Batch/scope:** Batch 6 — Dead code & hygiene
