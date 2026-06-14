@@ -8,26 +8,24 @@ A web-based research tool for studying UK climate discourse and lived experience
 - **Web scraping** from UK news sources (BBC News, The Guardian, regional newspapers)
 - **Reddit API** integration for UK climate subreddits
 - **Manual entry** for field research and additional sources
-- **Automated scheduling** with configurable collection intervals
 - **Deduplication** to avoid storing repeated content
 
 ### NLP Analysis
 - **Sentiment analysis** with climate-specific lexicon adjustments
-- **Theme extraction** using TF-IDF and topic modeling (LDA)
+- **Theme extraction** using TF-IDF keywords
 - **Discourse classification**: practical adaptation, emotional response, policy discussion, community action, denial/dismissal
-- **Geographic entity recognition** for UK locations
-- **Word frequency** and n-gram analysis
+- **Geographic location extraction** for UK locations via a built-in gazetteer
 
 ### Visualizations & Insights
 - **Geographic heat map** showing climate discussion distribution across UK regions (Leaflet)
 - **Temporal trends** with configurable granularity (daily/weekly/monthly)
-- **Theme frequency charts** and word cloud displays
+- **Theme frequency charts** and co-occurrence matrices
 - **Sentiment distribution** and sentiment-over-time analysis
 - **Discourse type breakdown** with example quotes
 
 ### Research Workspace
 - **Markdown note editor** with preview
-- **Quote library** with citation generation (APA, MLA, Chicago)
+- **Quote library** with citation generation (APA, Chicago, MLA 9)
 - **Sample linking** — connect notes to specific discourse samples
 - **Export** research data in CSV or JSON format
 
@@ -35,30 +33,72 @@ A web-based research tool for studying UK climate discourse and lived experience
 
 | Layer | Technology |
 |-------|-----------|
-| Backend API | Python 3.11+, FastAPI, SQLAlchemy (async) |
-| Database | PostgreSQL 15+ |
-| Task Queue | Celery + Redis |
-| NLP | spaCy, scikit-learn, VADER sentiment |
+| Backend API | Python 3.10.x, FastAPI, SQLAlchemy (async) |
+| Database | SQLite (via aiosqlite) |
+| NLP | scikit-learn, VADER sentiment |
 | Frontend | React 18 + TypeScript, Vite, TailwindCSS |
 | Visualizations | Recharts, Leaflet (react-leaflet) |
 | Infrastructure | Docker, Docker Compose |
 
+> [!NOTE]
+> SQLite is the default database. Schema tables are created dynamically at application startup via `Base.metadata.create_all` (no Alembic migrations are used). Any manual schema modifications during development require recreating the database file.
+
 ## Quick Start
 
 ### Prerequisites
-- Docker and Docker Compose installed
+- Python 3.10.x
+- Node.js 20+
 - Git
 
-### Launch
+### Launch (Local Development)
+
+The easiest way to start both the backend and frontend concurrently is by using the provided batch file:
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd thermoculture-research-assistant
-
-# Start all services
-docker compose up --build
+run_app.bat
 ```
+
+Alternatively, you can start the services manually:
+
+**Backend API:**
+1. Navigate to the `backend` directory:
+   ```bash
+   cd backend
+   ```
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   # On Windows:
+   venv\Scripts\activate
+   # On Unix/macOS:
+   source venv/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run the seed script (this creates the database tables and populates seed data):
+   ```bash
+   python -m seeds.run_seed
+   ```
+5. Start the FastAPI development server:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+**Frontend React App:**
+1. Navigate to the `frontend` directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the Vite development server:
+   ```bash
+   npm run dev
+   ```
 
 The application will be available at:
 - **Frontend**: http://localhost:5173
@@ -66,20 +106,24 @@ The application will be available at:
 - **API Docs (Swagger)**: http://localhost:8000/docs
 - **API Docs (ReDoc)**: http://localhost:8000/redoc
 
-### Seed the Database
+### Seeding the Database
+
+To populate the database with test data, run the seed script from the `backend` directory. The seed script dynamically creates all tables and prints the generated credentials for the test user upon completion:
 
 ```bash
-# Run the seed script to populate with test data
-docker compose exec backend python -m seeds.run_seed
+cd backend
+python -m seeds.run_seed
 ```
 
-This creates:
-- 1 test user (researcher@thermoculture.ac.uk / research2024)
-- 25 UK locations
-- 10 data sources
-- 12 climate themes
-- 60+ discourse samples with sentiment analysis, classifications, and theme tags
-- 2 sample research notes
+### Docker Launch (Secondary option)
+
+You can launch a trimmed stack using Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+This runs both the frontend and backend containers. The backend mounts the local directory to persist the SQLite database.
 
 ## Project Structure
 
@@ -91,7 +135,6 @@ thermoculture-research-assistant/
 │   │   ├── core/           # Config, database, security
 │   │   ├── models/         # SQLAlchemy ORM models
 │   │   ├── schemas/        # Pydantic validation schemas
-│   │   ├── services/       # Celery tasks and services
 │   │   └── main.py         # FastAPI application entry
 │   ├── collectors/         # Data collection modules
 │   │   ├── news_collector.py
@@ -102,9 +145,7 @@ thermoculture-research-assistant/
 │   │   ├── sentiment.py    # Sentiment analysis
 │   │   ├── classifier.py   # Discourse classification
 │   │   ├── theme_extractor.py
-│   │   ├── geographic.py   # UK location extraction
 │   │   └── analyzer.py     # Analysis orchestrator
-│   ├── migrations/         # Alembic database migrations
 │   ├── seeds/              # Test data seeders
 │   ├── tests/              # Pytest test suite
 │   ├── Dockerfile
@@ -130,6 +171,7 @@ thermoculture-research-assistant/
 |--------|----------|-------------|
 | POST | /api/v1/auth/register | Register new user |
 | POST | /api/v1/auth/login | Login (returns JWT) |
+| GET | /api/v1/auth/me | Get current user details |
 
 ### Sources
 | Method | Endpoint | Description |
@@ -149,26 +191,36 @@ thermoculture-research-assistant/
 | DELETE | /api/v1/samples/{id} | Delete sample |
 | GET | /api/v1/samples/{id}/analysis | Get analysis results |
 
-### Analysis
+### Analysis & Insights
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /api/v1/analysis/sentiment-over-time | Sentiment trends |
-| GET | /api/v1/analysis/theme-frequency | Theme counts |
 | GET | /api/v1/analysis/geographic-distribution | Regional distribution |
 | GET | /api/v1/analysis/discourse-types | Classification breakdown |
 | GET | /api/v1/analysis/trending-themes | Recent trending themes |
 | GET | /api/v1/analysis/timeline | Volume over time |
+| GET | /api/v1/analysis/sentiment-distribution | Sentiment histogram |
+| GET | /api/v1/analysis/map-locations | Leaflet map markers |
+| GET | /api/v1/analysis/theme-frequencies | Theme counts |
+| GET | /api/v1/analysis/theme-co-occurrence | Co-occurrence matrix |
 
 ### Research Notes
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /api/v1/notes/ | List user's notes |
 | POST | /api/v1/notes/ | Create note |
-| GET | /api/v1/notes/{id} | Get note |
+| GET | /api/v1/notes/{id} | Get note details |
 | PUT | /api/v1/notes/{id} | Update note |
 | DELETE | /api/v1/notes/{id} | Delete note |
-| POST | /api/v1/notes/{id}/link-sample/{sample_id} | Link sample |
-| POST | /api/v1/notes/{id}/unlink-sample/{sample_id} | Unlink sample |
+| POST | /api/v1/notes/{id}/link-sample/{sample_id} | Link sample to note |
+| POST | /api/v1/notes/{id}/unlink-sample/{sample_id} | Unlink sample from note |
+
+### Quote Library
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/v1/quotes/ | List user's saved quotes |
+| POST | /api/v1/quotes/ | Save a quote |
+| DELETE | /api/v1/quotes/{quote_id} | Delete a saved quote |
 
 ### Export
 | Method | Endpoint | Description |
@@ -182,58 +234,19 @@ thermoculture-research-assistant/
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| DATABASE_URL | PostgreSQL connection string | postgresql+asyncpg://postgres:postgres@db:5432/thermoculture |
-| REDIS_URL | Redis connection string | redis://redis:6379/0 |
+| DATABASE_URL | SQLite connection URL | sqlite+aiosqlite:///./thermoculture.db |
 | SECRET_KEY | JWT signing key | (change in production) |
 | REDDIT_CLIENT_ID | Reddit API client ID | (optional) |
 | REDDIT_CLIENT_SECRET | Reddit API secret | (optional) |
-| REDDIT_USER_AGENT | Reddit API user agent | thermoculture-research-assistant/1.0 |
-
-### Reddit API Setup (Optional)
-1. Create a Reddit application at https://www.reddit.com/prefs/apps
-2. Select "script" type
-3. Copy client ID and secret to .env file
+| REDDIT_USER_AGENT | Reddit API user agent | ThermocultureResearchBot/1.0 |
 
 ## Running Tests
 
 ```bash
-# Run all tests
-docker compose exec backend pytest
-
-# Run with coverage
-docker compose exec backend pytest --cov=app --cov=nlp --cov=collectors
-
-# Run specific test files
-docker compose exec backend pytest tests/test_api.py
-docker compose exec backend pytest tests/test_nlp.py
-```
-
-## Development
-
-### Backend (without Docker)
-```bash
+# Navigate to backend and run all tests
 cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-uvicorn app.main:app --reload
+venv\Scripts\python -m pytest
 ```
-
-### Frontend (without Docker)
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## Research Use Cases
-
-1. **Discourse Pattern Analysis**: Identify how UK climate discourse varies by region, time, and source type
-2. **Sentiment Tracking**: Monitor shifts in public sentiment toward climate change over time
-3. **Lived Experience Documentation**: Collect and categorize first-person accounts of climate adaptation
-4. **Policy Response Analysis**: Track how policy discussions differ from lived experience accounts
-5. **Geographic Comparison**: Compare climate discourse across UK regions
 
 ## License
 

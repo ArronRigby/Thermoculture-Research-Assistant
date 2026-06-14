@@ -494,7 +494,7 @@ async def seed_database(db_session):
     )
     db_session.add(test_user)
     await db_session.flush()
-    print(f"Created test user: {test_user.email}")
+    print(f"Created test user: {test_user.email} with password research2024")
 
     # Create locations
     location_records = []
