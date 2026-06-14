@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
+import { toast } from 'react-hot-toast';
 import type { FilterParams } from '../types';
 
 interface ExportButtonProps {
@@ -42,7 +43,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      console.error('Export failed');
+      toast.error('Export failed');
     } finally {
       setLoading(null);
       setOpen(false);

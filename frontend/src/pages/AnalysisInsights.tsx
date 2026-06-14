@@ -248,6 +248,8 @@ function TemporalTab() {
 // Themes Tab
 // ---------------------------------------------------------------------------
 
+const EMPTY_ARRAY: never[] = [];
+
 function ThemesTab() {
   const themeFreqQ = useQuery({
     queryKey: ['themeFrequencies'],
@@ -259,8 +261,8 @@ function ThemesTab() {
     queryFn: () => fetchThemeCoOccurrence(),
   });
 
-  const freqData = themeFreqQ.data?.data ?? [];
-  const coOccData = coOccQ.data?.data ?? [];
+  const freqData = themeFreqQ.data?.data ?? EMPTY_ARRAY;
+  const coOccData = coOccQ.data?.data ?? EMPTY_ARRAY;
 
   // Build word cloud data from frequencies
   const maxCount = freqData.reduce((m, d) => Math.max(m, d.count), 1);

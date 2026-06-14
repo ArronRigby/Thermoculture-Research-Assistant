@@ -23,7 +23,7 @@ export default function Login() {
       await login({ username: email, password });
       const searchParams = new URLSearchParams(location.search);
       const returnTo = searchParams.get('returnTo');
-      const from = returnTo || (location.state as any)?.from?.pathname || '/';
+      const from = returnTo || (location.state as { from?: { pathname?: string } })?.from?.pathname || '/';
       navigate(from, { replace: true });
     } catch {
       // error is set in useAuth

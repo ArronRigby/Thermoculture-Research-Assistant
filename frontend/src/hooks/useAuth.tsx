@@ -31,8 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userData = await getCurrentUser();
       setUser(userData);
-    } catch (err) {
-      console.error('[Auth] Failed to fetch user:', err);
+    } catch {
       // Only clear token if it was a 401, but the interceptor handles that.
       // Here we just ensure state is updated.
       setUser(null);
@@ -56,9 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const userData = await getCurrentUser();
       setUser(userData);
-    } catch (err: any) {
-      const message = err.response?.data?.detail || err.message || 'Login failed';
-      console.error('[Auth] Login error:', message);
+    } catch (err) {
+      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (err as Error)?.message || 'Login failed';
       setError(message);
       throw err;
     } finally {
@@ -78,8 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(TOKEN_KEY, loginResponse.access_token);
       const userData = await getCurrentUser();
       setUser(userData);
-    } catch (err: any) {
-      const message = err.response?.data?.detail || err.message || 'Registration failed';
+    } catch (err) {
+      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (err as Error)?.message || 'Registration failed';
       setError(message);
       throw err;
     } finally {

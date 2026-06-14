@@ -350,8 +350,8 @@ function StartCollectionModal({ onClose }: { onClose: () => void }) {
       toast.success('Collection job started');
       onClose();
     },
-    onError: (err: any) => {
-      const msg = err.response?.data?.detail || 'Failed to start collection';
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to start collection';
       toast.error(msg);
     },
   });
